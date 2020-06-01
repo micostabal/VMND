@@ -5,5 +5,5 @@ A Python Implementation of the Variable MIP Neighborhood Descent
 
 ## Documentation
 
-##How to Use It
+## User's Manual
 
