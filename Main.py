@@ -22,7 +22,7 @@ solver(
     importedNeighborhoods = nsAct,
     funTest = getCheckSubTour(n, H, K),
     alpha = 3,
-    callback = 'vmnd',
+    callback = 'pure',
     verbose = True
     )
 
