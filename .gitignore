@@ -1,5 +1,8 @@
 # Directories #
 MIPLIB
 out.lp
-gurobi.txt
+gurobi.log
 VMNDresults.txt
+Intstances/VRP Instances
+Intstances/Instances IRPCS
+Intstances/DATFiles
