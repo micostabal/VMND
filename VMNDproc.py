@@ -21,19 +21,28 @@ def checkVariables(modelVars, neighborhoods):
         return True
 
 def SubtourElimCallback(model, where):
+
     if where == GRB.Callback.MIPSOL:
         if model._addLazy and model._funLazy is not None:
             model._vals = model.cbGetSolution(model._vars)
             vals = model.cbGetSolution(model._vars)
             newLazy = model._funLazy(model._vals)
 
-            # This could be encapsulated in a model function.
-            ### CHECK IF COULD BE IMPROVED
             if len(newLazy) > 0:
                 for cut in newLazy:
                     model.cbLazy( quicksum( model._vars[key] * cut.nonzero[key] for key in cut.nonzero.keys() )
                     , model._senseDict[cut.sense], cut.rhs)
                     model._BCLazyAdded.append(cut)
+
+
+            if time.time() - model._LastGapTime >= 10:
+
+                bound = GRB.Callback.MIPSOL_OBJBST
+                obj = GRB.Callback.MIPSOL_OBJBND
+                gap = abs(bound - obj) / abs(bound)
+
+                model._gapsTimes.append( (time.time() - model._initialTime, gap ) )
+                model._LastGapTime = time.time()
 
 def VMNDCallback(model, where):
 
@@ -75,6 +84,10 @@ def VMNDCallback(model, where):
             #print('Starting B&C Search')
             # Time starting new B&C phase
             model._BCLastStart = time.time()
+        
+        if time.time() - model._LastGapTim >= 10:
+            model._gapsTimes.append( (time.time() - model._initialTime, model.getAttr(GRB.Attr.MIPGap) ) )
+            model._LastGapTime = time.time()
 
     # Check B&C time.
     tactBC = (time.time() - model._BCLastStart)
@@ -279,6 +292,9 @@ def solver(
     model._realObj = 0
     model._path = path
     model._verbose = verbose
+    model._initialTime = time.time()
+    model._LastGapTime = time.time()
+    model._gapsTimes = []
     
 
     # Local Search Attriutes.
@@ -374,6 +390,32 @@ def runSeveral(heuristic = 'vmnd'):
                     file.write(line.lstrip('MIPLIB//'))
                     file.close()
 
+def compareGaps(path):
+    # Initial parameters
+    n, H, K = 15, 3, 2
+
+    # Neighborhoods are set
+    nsAct = Neighborhoods(lowest = 2, highest = 5, randomSet = False, outerNeighborhoods = genIRPneigh(n, H, K))
+    # Mdoel is executed
+    vmndModel = solver(
+        path,
+        addlazy = True,
+        funlazy = genSubtourLazy(n, H, K),
+        importNeighborhoods = True,
+        importedNeighborhoods = nsAct,
+        funTest = getCheckSubTour(n, H, K),
+        alpha = 3,
+        callback = 'pure',
+        verbose = True
+        )
+    vmndGapList = vmndModel._gapsTimes
+    print(vmndGapList)
+
+
+
+
 
 if __name__ == '__main__':
-    runSeveral('vmnd')
+    #runSeveral('vmnd')
+
+    compareGaps(os.path.join('MIPLIB', 'abs1n15_3.mps'))
