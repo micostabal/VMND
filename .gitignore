@@ -1,2 +1,5 @@
 # Directories #
 MIPLIB
+out.lp
+gurobi.txt
+VMNDresults.txt
