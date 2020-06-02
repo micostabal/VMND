@@ -1,5 +1,5 @@
 # VMND
-A Python Implementation of the Variable MIP Neighborhood Descent
+A Python Implementation of the Variable MIP Neighborhood Descent Heuristic.
 
 ## Folders
 
