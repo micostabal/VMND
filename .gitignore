@@ -3,13 +3,13 @@ MIPLIB
 out.lp
 gurobi.log
 VMNDresults.txt
-Intstances/VRP Instances
-Intstances/Instances IRPCS
+Intstances/VRP\ Instances
+Intstances/Instances\ IRPCS
 Intstances/DATFiles
 __pycache__
 100nodes.txt
 60nodes.txt
-Inst1.txt
+Intstances/Instances\ IRPCS/Inst1.txt
 Inst2.txt
 Inst3.txt
 Inst4.txt
