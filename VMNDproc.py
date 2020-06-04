@@ -227,7 +227,6 @@ def localSearch(model):
                     model._LSImprSols = locModel.getAttr('X')
                     model._LSImprovedDict = {}
 
-                    
                     totalvars = len(model._vars.keys())
                     distinct = 0
                     for key in locModel._vars.keys():
