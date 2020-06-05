@@ -28,6 +28,8 @@ def SubtourElimCallback(model, where):
             vals = model.cbGetSolution(model._vars)
             newLazy = model._funLazy(model._vals)
 
+
+
             if len(newLazy) > 0:
                 for cut in newLazy:
                     model.cbLazy( quicksum( model._vars[key] * cut.nonzero[key] for key in cut.nonzero.keys() )
@@ -35,14 +37,14 @@ def SubtourElimCallback(model, where):
                     model._BCLazyAdded.append(cut)
 
 
-            if time.time() - model._LastGapTime >= 10:
+            """if time.time() - model._LastGapTime >= 10:
 
                 bound = GRB.Callback.MIPSOL_OBJBST
                 obj = GRB.Callback.MIPSOL_OBJBND
                 gap = abs(bound - obj) / abs(bound)
 
                 model._gapsTimes.append( (time.time() - model._initialTime, gap ) )
-                model._LastGapTime = time.time()
+                model._LastGapTime = time.time()"""
 
 def VMNDCallback(model, where):
 
@@ -58,12 +60,13 @@ def VMNDCallback(model, where):
             model._BCVals = v1
 
             newLazy = model._funLazy(model._vals)
-            
+
             if len(newLazy) > 0:
                 for cut in newLazy:
                     model.cbLazy( quicksum( model._vars[key] * cut.nonzero[key] for key in cut.nonzero.keys() )
                     , model._senseDict[cut.sense], cut.rhs)
                     model._BCLazyAdded.append(cut)
+                    
         
         if not model._incFound:
             model._incFound = True
@@ -85,9 +88,9 @@ def VMNDCallback(model, where):
             # Time starting new B&C phase
             model._BCLastStart = time.time()
         
-        if time.time() - model._LastGapTim >= 10:
+        """if time.time() - model._LastGapTime >= 10:
             model._gapsTimes.append( (time.time() - model._initialTime, model.getAttr(GRB.Attr.MIPGap) ) )
-            model._LastGapTime = time.time()
+            model._LastGapTime = time.time()"""
 
     # Check B&C time.
     tactBC = (time.time() - model._BCLastStart)
@@ -95,16 +98,30 @@ def VMNDCallback(model, where):
     # Time is being restricted and BC phase hasn't reached its timelimit and we are now in a MIP Node.
     if where == GRB.Callback.MIPNODE and model._incFound and (not model._restrTime or
      (model._restrTime and tactBC <= model._alpha * model._LSLastTime )):
-        # We inject heuristic solution to B&C procedure.
-        if model._LSImprSols is not None and model._restrTime:
+
+        if model._addLazy and model._funLazy is not None and GRB.Callback.MIPNODE_STATUS == GRB.OPTIMAL:
             
+            vals = model.cbGetNodeRel(model._vars)
+            model._vals = vals
+            v1 = {}
+            for varname in model._vars.keys():
+                v1[varname] = vals[varname]
+            model._BCVals = v1
+
+            newLazy = model._funLazy(model._vals)
+
+            if len(newLazy) > 0:
+                for cut in newLazy:
+                    print('Lazy constraints being added in MIPNODE')
+                    model.cbAddLazy( quicksum( model._vars[key] * cut.nonzero[key] for key in cut.nonzero.keys() )
+                    , model._senseDict[cut.sense], cut.rhs)
+                    model._BCLazyAdded.append(cut)
+
+        # We inject heuristic solution to B&C procedure.
+        if model._LSImprSols is not None and model._LSImproved:
             for key in model._LSImprovedDict:
                 model.cbSetSolution(model.getVarByName(key), model._LSImprovedDict[key])
-
-                #model._BCHeuristicCounter += 1
-                #model.cbSetSolution( model.getVars(), model._LSImprSols)
-                #objval = model.cbUseSolution()
-
+            
     # Time is being restricted and BC phase hasn't reached its timelimit and we have found a MIP Solution.
     if where == GRB.Callback.MIPSOL and model._incFound and (not model._restrTime or (model._restrTime and tactBC <= model._alpha * model._LSLastTime )):
         
@@ -359,7 +376,7 @@ def creator(path):
     return loadMPS(path)
 
 def runSeveral(heuristic = 'vmnd'):
-    for nodes in [5]:
+    for nodes in [5, 10, 15]:
         for vers in [1, 2, 3]:
             for i in range(1, 5):
                 path = os.path.join('MIPLIB', 'abs{}n{}_{}.mps'.format(vers, nodes, i))
@@ -411,10 +428,5 @@ def compareGaps(path):
     print(vmndGapList)
 
 
-
-
-
 if __name__ == '__main__':
-    #runSeveral('vmnd')
-
-    compareGaps(os.path.join('MIPLIB', 'abs1n15_3.mps'))
+    runSeveral('vmnd')

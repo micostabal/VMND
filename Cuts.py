@@ -81,7 +81,7 @@ def SubtourElim(model, where):
 
 def getCheckSubTour(n, H, K, stVarName='y', keyOperator = transformKey):
     def checkSubTour(vals):
-        vals = { keyOperator(var) : vals[var] for var in vals.keys() if var[0] == stVarName and vals[var] > 0 }
+        vals = { keyOperator(var) : vals[var] for var in vals.keys() if var[0] == stVarName and vals[var] >= 0.1 }
 
         errorcnt = 0
         for k in range(1, K + 1):
@@ -92,7 +92,7 @@ def getCheckSubTour(n, H, K, stVarName='y', keyOperator = transformKey):
                     #visualize(edges)
                     subsets = getSubsets(edges, n)
                     if len(subsets) > 0:
-                        print(subsets)
+                        print(k, t, subsets)
                         print('---------- ERROR! ----------')
                         errorcnt += 1
         
