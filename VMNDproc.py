@@ -1,5 +1,6 @@
 from gurobipy import *
 import numpy as np
+from math import trunc
 from ConComp import getSubsets
 from Neighborhood import Neighborhoods, genIRPneighborhoods, genIRPneigh
 from Others import loadMPS
@@ -94,10 +95,12 @@ def VMNDCallback(model, where):
 
     # Check B&C time.
     tactBC = (time.time() - model._BCLastStart)
+    # The time in B&C must be at least the
+    tminBC = max(model._alpha * model._LSLastTime, model._minBCTime )
 
     # Time is being restricted and BC phase hasn't reached its timelimit and we are now in a MIP Node.
     if where == GRB.Callback.MIPNODE and model._incFound and (not model._restrTime or
-     (model._restrTime and tactBC <= model._alpha * model._LSLastTime )):
+     (model._restrTime and tactBC <= tminBC )):
 
         if model._addLazy and model._funLazy is not None and GRB.Callback.MIPNODE_STATUS == GRB.OPTIMAL:
             
@@ -123,7 +126,7 @@ def VMNDCallback(model, where):
                 model.cbSetSolution(model.getVarByName(key), model._LSImprovedDict[key])
             
     # Time is being restricted and BC phase hasn't reached its timelimit and we have found a MIP Solution.
-    if where == GRB.Callback.MIPSOL and model._incFound and (not model._restrTime or (model._restrTime and tactBC <= model._alpha * model._LSLastTime )):
+    if where == GRB.Callback.MIPSOL and model._incFound and (not model._restrTime or (model._restrTime and tactBC <= tminBC )):
         
         if model.cbGet(GRB.Callback.MIPSOL_OBJ) < model._BCLastObj and model._LSNeighborhoods._depth > model._LSNeighborhoods.lowest:
             if model._verbose:
@@ -134,7 +137,7 @@ def VMNDCallback(model, where):
         model._BCLastObj = model.cbGet(GRB.Callback.MIPSOL_OBJ)
 
     # We are now in an arbitrary place in the search tree and B&C timelimit has already ocurred.
-    if model._incFound and model._restrTime and tactBC > model._alpha * model._LSLastTime:
+    if model._incFound and model._restrTime and tactBC > tminBC:
 
         if where == GRB.Callback.MIPSOL:
             if model.cbGet(GRB.Callback.MIPSOL_OBJ) < model._BCLastObj and model._LSNeighborhoods._depth > model._LSNeighborhoods.lowest:
@@ -181,6 +184,12 @@ def VMNDCallback(model, where):
                 model.cbLazy( quicksum( model._vars[key] * cut.nonzero[key] for key in cut.nonzero.keys() )
                 , model._senseDict[cut.sense], cut.rhs)
                 model._BCLazyAdded.append(cut)
+
+        bstBound = model.cbGet(GRB.Callback.MIPSOL_OBJBND)
+        bstObj = model.cbGet(GRB.Callback.MIPSOL_OBJBST)
+
+        gap = abs(bstBound - bstObj) / abs(bstObj)
+        #print('Current Gap is {}%.'.format(round(gap * 100 , 2)))
 
 def localSearch(model):
     model._LSImproved = False
@@ -290,7 +299,9 @@ def solver(
     importedNeighborhoods = None,
     funTest = None,
     callback = 'vmnd',
-    alpha = 2
+    alpha = 2,
+    minBCTime = 7,
+    timeTimitHours = 3
     ):
     model = Model()
     model = loadMPS(path)
@@ -328,6 +339,7 @@ def solver(
     # Branch and Cut Attributes.
     model._addLazy = addlazy
     model._funLazy = funlazy
+    model._minBCTime = minBCTime
     model._BCLastStart = time.time()
     model._BCLastObj = 0
     model._BCVals = None
@@ -351,7 +363,13 @@ def solver(
 
     if allTestsPassed or not importNeighborhoods:
         model.setParam("LazyConstraints", 1)
-        model.setParam('MIPFocus', 3)
+
+        if callback == 'vmnd':
+            model.setParam('MIPFocus', 2)
+        else:
+            model.setParam('MIPFocus', 1)
+        
+        model.setParam('TimeLimit', timeTimitHours * 3600)
         if not verbose:
             model.setParam('OutputFlag', 0)
         if callback == 'vmnd':
@@ -369,16 +387,15 @@ def solver(
             else:
                 model._line += 'SUBTOUR : ERROR'
         
-
     return model
 
 def creator(path):
     return loadMPS(path)
 
 def runSeveral(heuristic = 'vmnd'):
-    for nodes in [5, 10, 15]:
-        for vers in [1, 2, 3]:
-            for i in range(1, 5):
+    for nodes in [25]:
+        for vers in [2]:
+            for i in range(1, 2):
                 path = os.path.join('MIPLIB', 'abs{}n{}_{}.mps'.format(vers, nodes, i))
                 line = path
                 n , H, K = nodes, 3, 2
@@ -392,7 +409,9 @@ def runSeveral(heuristic = 'vmnd'):
                         funTest= getCheckSubTour(n, H, K),
                         alpha = 2,
                         callback = heuristic,
-                        verbose = True
+                        verbose = True,
+                        minBCTime = 30
+
                 )
                 if mout .status == GRB.OPTIMAL:
                     file = open('{}results.txt'.format(heuristic.upper()), 'a')
@@ -402,7 +421,7 @@ def runSeveral(heuristic = 'vmnd'):
                     print('Finished Model {}'.format(line.lstrip('MIPLIB//')))
                 else:
                     file = open('{}results.txt'.format(heuristic.upper()), 'a')
-                    line += ' OPTIMZLITY WAS NOT REACHED' + '\n'
+                    line += ' OPTIMALITY WAS NOT REACHED' + '\n'
                     file.write(line.lstrip('MIPLIB//'))
                     file.close()
 
@@ -429,4 +448,4 @@ def compareGaps(path):
 
 
 if __name__ == '__main__':
-    runSeveral('vmnd')
+    runSeveral('pure')

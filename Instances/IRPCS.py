@@ -381,7 +381,7 @@ class IRPCS:
 
     def genTestFunction(self):
         def SubtourCheck(vals):
-            vals = { IRPCStransformKey(var) : vals[var] for var in vals.keys() if var[0] == 'x' and vals[var] > 0 }
+            vals = { IRPCStransformKey(var) : vals[var] for var in vals.keys() if var[0] == 'x' and vals[var] > 0.001 }
 
             errorcnt = 0
             for k in range(1, self.K + 1):
@@ -425,7 +425,7 @@ class IRPCS:
 
     def visualizeRes(self):
 
-        outRoutes = {key : self.resultVars[key] for key in self.resultVars.keys() if self.resultVars[key] >= 1
+        outRoutes = {key : self.resultVars[key] for key in self.resultVars.keys() if self.resultVars[key] >= 0.99
          and key[0] == 'x'}
         for k in range(1, self.K + 1):
             for t in range(1, self.H + 1):
@@ -444,7 +444,7 @@ class IRPCS:
 
 if __name__ == '__main__':
 
-    n = 17
+    n = 15
     K = 3
     H = 8
 
