@@ -16,3 +16,8 @@ Inst4.txt
 Inst5.txt
 Instances/Instances/MVRPD/
 Instances/Instances/VRP/
+Instances/Instances/MVRPD
+Instances/IRPCSInstances
+Instances/DATFiles
+Instances/VRPInstances
+Intstances/__pycache__

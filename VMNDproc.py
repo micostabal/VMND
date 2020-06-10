@@ -17,6 +17,7 @@ def checkVariables(modelVars, neighborhoods):
             totalVarsN = totalVarsN.union(set(neighborhoods[n][param]))
 
     if len(totalVarsN.difference(setModelVars)) > 0:
+        print(totalVarsN.difference(setModelVars))
         return False
     else:
         return True
@@ -50,15 +51,18 @@ def SubtourElimCallback(model, where):
 def VMNDCallback(model, where):
 
     if where == GRB.Callback.MIPSOL:
+
+        vals = model.cbGetSolution(model._vars)
+        model._vals = vals
+        v1 = {}
+        for varname in model._vars.keys():
+            v1[varname] = vals[varname]
+        model._BCVals = v1
+
         # Necessary (subtour) cuts need to be added.
         if model._addLazy and model._funLazy is not None:
             
-            vals = model.cbGetSolution(model._vars)
-            model._vals = vals
-            v1 = {}
-            for varname in model._vars.keys():
-                v1[varname] = vals[varname]
-            model._BCVals = v1
+
 
             newLazy = model._funLazy(model._vals)
 
@@ -245,10 +249,14 @@ def localSearch(model):
             locModel.optimize()
 
             if locModel.status == GRB.OPTIMAL:
+                if model._LSLastObj is None:
+                    model._LSLastObj = model._BCLastObj
+
                 if model._verbose:
                     print('Local Search Phase has feasible solution')
-                if model._BCLastObj > locModel.objVal:
+                if model._BCLastObj > locModel.objVal and model._LSLastObj > locModel.objVal:
                     model._LSImproved = True
+                    model._LSLastObj = locModel.objVal
                     model._BCHeuristicCounter = 0
                     model._LSImprSols = locModel.getAttr('X')
                     model._LSImprovedDict = {}
@@ -334,6 +342,7 @@ def solver(
     model._LSImproved = False
     model._LSImprovedDict = None
     model._LSImprSols = None
+    model._LSLastObj = None
     
 
     # Branch and Cut Attributes.
@@ -365,7 +374,7 @@ def solver(
         model.setParam("LazyConstraints", 1)
 
         if callback == 'vmnd':
-            model.setParam('MIPFocus', 2)
+            model.setParam('MIPFocus', 3)
         else:
             model.setParam('MIPFocus', 1)
         

@@ -1,8 +1,8 @@
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, ABCMeta
 from gurobipy import *
 import os
 
-class Instance(ABC):
+class Instance(metaclass = ABCMeta):
  
     def __init__(self, instName = ''):
         super().__init__()

@@ -1,4 +1,6 @@
 from itertools import chain, combinations
+import pandas as pd
+from gurobipy import *
 
 def powerset(seq):
     """
@@ -60,8 +62,62 @@ def keyOpVRP(key):
         print('Format Variable Name Errors!!')
         return 0
 
+def keyOpMVRPD(key):
+    elements = key.split('_')
+    if len(elements) == 4:
+        return (elements[0], int(elements[1]), int(elements[2]), int(elements[3]) )
+    else:
+        print('Format Variable Name Errors!!')
+        return 0
+
 def keyOpTSP(key):
     return (key.split('_')[0], int(key.split('_')[1]), int(key.split('_')[2]))
 
+def get_expr_coos(expr, var_indices):
+    for i in range(expr.size()):
+        dvar = expr.getVar(i)
+        yield expr.getCoeff(i), var_indices[dvar]
+
+def get_matrix_coos(m):
+    dvars = m.getVars()
+    constrs = m.getConstrs()
+    var_indices = {v: i for i, v in enumerate(dvars)}
+    for row_idx, constr in enumerate(constrs):
+        for coeff, col_idx in get_expr_coos(m.getRow(constr), var_indices):
+            yield row_idx, col_idx, coeff
+
+def GenNbsGraph(path = "..//MIPLIB//js1n50_l_3.mps"):
+    m = read(path)
+    nzs = pd.DataFrame(get_matrix_coos(m), columns=['row_idx', 'col_idx', 'coeff'])
+
+    edges = {}
+    actRow = 0
+    varsInRow = []
+    for index, row in nzs.iterrows():
+
+        if int(row[0]) % 20 == 0:
+            print(row)
+        
+        if row['row_idx'] == actRow:
+            varsInRow.append(row['col_idx'])
+            
+        else:
+            for x1 in varsInRow:
+                for x2 in varsInRow:
+                    
+                    if int(x1) < int(x2):
+                        if (int(x1), int(x2)) in edges.keys():
+                            edges[( int(x1) , int(x2) )] += 1
+                        else:
+                            edges[( int(x1) , int(x2) )] = 1
+
+            actRow = row.row_idx
+            varsInRow = []
+            varsInRow.append(row.col_idx)
+
+    print(edges)
+    """plt.scatter(nzs.col_idx, nzs.row_idx, 
+            marker='.', lw=0)
+    plt.show()"""
 
 if __name__ == '__main__': pass
