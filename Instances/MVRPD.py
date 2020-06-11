@@ -259,7 +259,7 @@ class MVRPD:
         else:
             X = self.positions
 
-            kmp = 15 # K means parameter
+            kmp = 3 # K means parameter
             kmeans = KMeans(n_clusters = kmp, random_state=0).fit(X)
             labels = kmeans.labels_
 
@@ -270,9 +270,10 @@ class MVRPD:
                     for tAct in range(1, self.H + 1)
                 },
                 2 : { # K means Neighborhood
-                    selK : ['x_{}_{}_{}'.format(i, j, t) for i in range(self.V + 1) for j in range(self.V + 1) for t in range(1, self.H + 1)
-                    if i != j and ( labels[i] == selK or labels[j] == selK ) ]
-                    for selK in range(kmp)
+                    (selK, tAct) : ['x_{}_{}_{}'.format(i, j, t)
+                     for i in range(self.V + 1) for j in range(self.V + 1) for t in range(1, self.H + 1)
+                    if i != j and t != tAct and labels[i] != selK and labels[j] != selK ]
+                    for selK in range(kmp) for tAct in range(1, self.H + 1)
                 }
             }
             return Neighborhoods(lowest=1, highest = 2, keysList=None, randomSet=False, outerNeighborhoods = outerMVRPD)
@@ -292,9 +293,9 @@ class MVRPD:
             addlazy = False,
             funlazy= None,
             importNeighborhoods= True,
-            importedNeighborhoods= self.genNeighborhoods(k=20, Kvecinities=True),
+            importedNeighborhoods= self.genNeighborhoods(k=20, Kvecinities= False),
             funTest= None,
-            alpha = 2,
+            alpha = 1,
             callback = 'vmnd',
             verbose = True,
             minBCTime = 10
@@ -327,7 +328,7 @@ class MVRPD:
 
 if __name__ == '__main__':
 
-    mvrpd1 = MVRPD(os.path.join( 'MVRPDInstances' , 'ajs1n50_h_6.dat'))
+    mvrpd1 = MVRPD(os.path.join( 'MVRPDInstances' , 'ajs1n50_l_3.dat'))
 
     mvrpd1.visualizeRes()
     
