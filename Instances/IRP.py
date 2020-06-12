@@ -269,7 +269,7 @@ class IRP(Instance):
 
     def genTestFunction(self):
         def checkSubTour(vals):
-            vals = { transformKey(var) : vals[var] for var in vals.keys() if var[0] == 'y' and vals[var] > 0 }
+            vals = { transformKey(var) : vals[var] for var in vals.keys() if var[0] == 'y' and vals[var] >= 0.99 }
 
             errorcnt = 0
             for k in range(1, self.K + 1):
@@ -329,8 +329,8 @@ class IRP(Instance):
 
 
 if __name__ == '__main__':
-    inst1 = IRP('abs1n10_1.dat')
-    inst1.run(thisAlpha = 6)
+    inst1 = IRP('abs1n15_1.dat')
+    inst1.run(thisAlpha = 1)
     inst1.visualizeRes()
 
     print('----------------- Program reached End of Execution Succesfully -----------------')

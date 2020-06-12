@@ -52,6 +52,8 @@ def VMNDCallback(model, where):
 
     if where == GRB.Callback.MIPSOL:
 
+
+
         vals = model.cbGetSolution(model._vars)
         model._vals = vals
         v1 = {}
@@ -62,8 +64,6 @@ def VMNDCallback(model, where):
         # Necessary (subtour) cuts need to be added.
         if model._addLazy and model._funLazy is not None:
             
-
-
             newLazy = model._funLazy(model._vals)
 
             if len(newLazy) > 0:
@@ -74,10 +74,14 @@ def VMNDCallback(model, where):
                     
         
         if not model._incFound:
+            #model.setParam('MIPFocus', 0)
+
             model._incFound = True
             model._restrTime = True
             model._BCLastObj = model.cbGet(GRB.Callback.MIPSOL_OBJ)
+            model._IncBeforeLS = model.cbGet(GRB.Callback.MIPSOL_OBJ)
             model._vals = model.cbGetSolution(model._vars)
+            model._LSLastObj = model._BCLastObj
 
             ## Here we generate heuristic local search solutions.
             if model._verbose:
@@ -92,19 +96,18 @@ def VMNDCallback(model, where):
             #print('Starting B&C Search')
             # Time starting new B&C phase
             model._BCLastStart = time.time()
-        
-        """if time.time() - model._LastGapTime >= 10:
-            model._gapsTimes.append( (time.time() - model._initialTime, model.getAttr(GRB.Attr.MIPGap) ) )
-            model._LastGapTime = time.time()"""
-
+    
     # Check B&C time.
     tactBC = (time.time() - model._BCLastStart)
-    # The time in B&C must be at least the
-    tminBC = max(model._alpha * model._LSLastTime, model._minBCTime )
+    # The time in B&C must be at least the minimum provided by the user (minBCTime) and alpha times the last LS phase.
+    totalTimeBC = max(model._alpha * model._LSLastTime, model._minBCTime )
 
     # Time is being restricted and BC phase hasn't reached its timelimit and we are now in a MIP Node.
     if where == GRB.Callback.MIPNODE and model._incFound and (not model._restrTime or
-     (model._restrTime and tactBC <= tminBC )):
+     (model._restrTime and tactBC <= totalTimeBC )):
+
+        # Incumbent before last Local search is updated.
+        model._IncBeforeLS = model.cbGet(GRB.Callback.MIPNODE_OBJBST)
 
         if model._addLazy and model._funLazy is not None and GRB.Callback.MIPNODE_STATUS == GRB.OPTIMAL:
             
@@ -130,9 +133,12 @@ def VMNDCallback(model, where):
                 model.cbSetSolution(model.getVarByName(key), model._LSImprovedDict[key])
             
     # Time is being restricted and BC phase hasn't reached its timelimit and we have found a MIP Solution.
-    if where == GRB.Callback.MIPSOL and model._incFound and (not model._restrTime or (model._restrTime and tactBC <= tminBC )):
+    if where == GRB.Callback.MIPSOL and model._incFound and (not model._restrTime or (model._restrTime and tactBC <= totalTimeBC )):
         
-        if model.cbGet(GRB.Callback.MIPSOL_OBJ) < model._BCLastObj and model._LSNeighborhoods._depth > model._LSNeighborhoods.lowest:
+        if model.cbGet(GRB.Callback.MIPSOL_OBJBST) - model._IncBeforeLS <= -1 and model._LSNeighborhoods._depth > model._LSNeighborhoods.lowest:
+            # Incumbent before last Local search is updated.
+            model._IncBeforeLS = model.cbGet(GRB.Callback.MIPSOL_OBJBST)
+            
             if model._verbose:
                 print("Valid B&C improvement.")
             model._LSNeighborhoods.resetDepth()
@@ -141,14 +147,22 @@ def VMNDCallback(model, where):
         model._BCLastObj = model.cbGet(GRB.Callback.MIPSOL_OBJ)
 
     # We are now in an arbitrary place in the search tree and B&C timelimit has already ocurred.
-    if model._incFound and model._restrTime and tactBC > tminBC:
+    if model._incFound and model._restrTime and tactBC > totalTimeBC:
 
         if where == GRB.Callback.MIPSOL:
-            if model.cbGet(GRB.Callback.MIPSOL_OBJ) < model._BCLastObj and model._LSNeighborhoods._depth > model._LSNeighborhoods.lowest:
+
+            # B&C phase improved the incument.
+            if model.cbGet(GRB.Callback.MIPSOL_OBJBST) - model._IncBeforeLS < -1 and model._LSNeighborhoods._depth > model._LSNeighborhoods.lowest:
                 if model._verbose:
                     print("Valid B&C improvement.")
+
+                # LS depth goes back to the lowest and time is restricted.
                 model._LSNeighborhoods.resetDepth()
                 model._restrTime = True
+
+                # Incumbent before last Local search is updated.
+                model._IncBeforeLS = model.cbGet(GRB.Callback.MIPSOL_OBJBST)
+
 
             if model._BCLastObj > model.cbGet(GRB.Callback.MIPSOL_OBJ):
                 model._restrTime = True
@@ -158,9 +172,10 @@ def VMNDCallback(model, where):
         if model._verbose:
             print('Starting Local Search Phase')
         starting_local_search = time.time()
+
         localSearch(model)
             
-        if model._LSNeighborhoods._depth == model._LSNeighborhoods.highest and not model._LSImproved:
+        if model._LSNeighborhoods._depth == model._LSNeighborhoods.highest:
             model._restrTime = False
         
         model._LSLastTime = time.time() - starting_local_search
@@ -221,7 +236,14 @@ def localSearch(model):
         pass
         #print('--------- POSSIBLE ERROR 0!! -------------')
 
-    for act_depth in model._LSNeighborhoods.neighborhoods:
+
+    while model._LSNeighborhoods._depth <= model._LSNeighborhoods.highest:
+
+        # The best objetive found in the neihgborhood is started as the last B&C objective.
+        bestLSObjSoFar = model._BCLastObj
+
+        act_depth = model._LSNeighborhoods._depth
+ 
         if model._verbose:
             print('Searching in depth : {}'.format(act_depth))
         model._LSNeighborhoods._depth = act_depth
@@ -254,7 +276,7 @@ def localSearch(model):
 
                 if model._verbose:
                     print('Local Search Phase has feasible solution')
-                if model._BCLastObj > locModel.objVal and model._LSLastObj > locModel.objVal:
+                if bestLSObjSoFar > locModel.objVal and model._LSLastObj > locModel.objVal:
                     model._LSImproved = True
                     model._LSLastObj = locModel.objVal
                     model._BCHeuristicCounter = 0
@@ -273,7 +295,7 @@ def localSearch(model):
                         print( 'MIP Incumbent: {} --'.format(model._BCLastObj) + 'Local Search Objective: {}'.format(locModel.objVal))
                         print('--------- Changed {} variables from {}, a  {}% ----------'.format(
                          distinct, totalvars, round(100 * distinct/totalvars, 4)))
-                    break
+                    
             
             for fixedVar in addedFixedVarsKeys:
                 cAct = locModel.getConstrByName(fixedVar)
@@ -285,6 +307,12 @@ def localSearch(model):
                 print('--------- CONSTRAINT ERROR 3!! -------------')
         
         if model._LSImproved: break
+        
+        if not model._LSNeighborhoods.canIncNeigh():
+            break
+        else:
+            model._LSNeighborhoods._depth += 1 
+
     
     if model._verbose:
         if model._LSImproved:
@@ -339,6 +367,7 @@ def solver(
         model._LSNeighborhoods = importedNeighborhoods
         
     model._LSLastTime = 1000
+    model._IncBeforeLS = None
     model._LSImproved = False
     model._LSImprovedDict = None
     model._LSImprSols = None
@@ -374,9 +403,10 @@ def solver(
         model.setParam("LazyConstraints", 1)
 
         if callback == 'vmnd':
-            model.setParam('MIPFocus', 3)
-        else:
+            model.setParam('ImproveStartTime', 20)
             model.setParam('MIPFocus', 1)
+        else:
+            model.setParam('MIPFocus', 0)
         
         model.setParam('TimeLimit', timeTimitHours * 3600)
         if not verbose:
@@ -457,4 +487,5 @@ def compareGaps(path):
 
 
 if __name__ == '__main__':
-    runSeveral('pure')
+    #runSeveral('pure')
+    pass

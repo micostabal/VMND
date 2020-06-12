@@ -266,8 +266,8 @@ class IRPCS:
 
         # Term 19: Degree Constraint
         model.addConstrs(
-        quicksum( modelVars['x_{}_{}_{}_{}'.format(i, j, k, t)] for j in range(self.V) if i < j) +
-        quicksum( modelVars['x_{}_{}_{}_{}'.format(j, i, k, t)] for j in range(self.V) if j < i) \
+        quicksum( modelVars['x_{}_{}_{}_{}'.format(i, j, k, t)] for j in range(self.V + 1) if i < j) +
+        quicksum( modelVars['x_{}_{}_{}_{}'.format(j, i, k, t)] for j in range(self.V + 1) if j < i) \
         == 2 * modelVars['y_{}_{}_{}'.format(i, k, t)]
         for i in range(self.V + 1) for t in range(1, self.H + 1) for k in range(1, self.K + 1))
 
@@ -381,7 +381,7 @@ class IRPCS:
 
     def genTestFunction(self):
         def SubtourCheck(vals):
-            vals = { IRPCStransformKey(var) : vals[var] for var in vals.keys() if var[0] == 'x' and vals[var] > 0.001 }
+            vals = { IRPCStransformKey(var) : vals[var] for var in vals.keys() if var[0] == 'x' and vals[var] >= 0.99 }
 
             errorcnt = 0
             for k in range(1, self.K + 1):
@@ -444,10 +444,10 @@ class IRPCS:
 
 if __name__ == '__main__':
 
-    n = 15
+    n = 30
     K = 3
-    H = 8
+    H = 5
 
-    inst1 = IRPCS(os.path.join('Instances IRPCS', '60nodes.txt'), Vtrunc=n, Htrunc=H, Ktrunc= K)
+    inst1 = IRPCS(os.path.join('IRPCSInstances', '60nodes.txt'), Vtrunc=n, Htrunc=H, Ktrunc= K)
     modelSolved = inst1.run(os.path.join(os.path.pardir , 'MIPLIB', 'SomeInstanceIRPCS{}_{}_{}.mps'.format(n, H, K) ), visualize = True)
     inst1.visualizeRes()

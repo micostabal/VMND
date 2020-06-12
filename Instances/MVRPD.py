@@ -1,5 +1,7 @@
 from gurobipy import *
 import sys
+from VMNDproc import solver
+import os
 sys.path.append(os.path.pardir)
 from Instance import Instance
 from math import ceil
@@ -10,8 +12,7 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import KMeans
 from Neighborhood import Neighborhoods
 from Functions import keyOpMVRPD
-from VMNDproc import solver
-import os
+
 
 def loadMVRPD(path):
     outdict = {}
@@ -51,7 +52,7 @@ def loadMVRPD(path):
 
 
 class MVRPD:
- 
+
     def __init__(self, path = ''):
         self.name = str(os.path.basename(path)).rstrip('.dat')
         self.pathMPS = None
@@ -81,8 +82,13 @@ class MVRPD:
             for j in range(self.V + 1):
                 for t in range(1, self.H + 1):
                     if i != j:
+                        
                         modelVars['x_{}_{}_{}'.format(i, j, t)] = \
                         model.addVar(vtype = GRB.BINARY, name='x_{}_{}_{}'.format(i, j, t))
+
+                        if i > 0:
+                            if t > self.dueDates[i] or t < self.release[i]:
+                                model.addConstr(modelVars['x_{}_{}_{}'.format(i, j, t)] == 0)
 
                         modelVars['l_{}_{}_{}'.format(i, j, t)] = \
                         model.addVar(0, GRB.INFINITY, vtype = GRB.CONTINUOUS, name='l_{}_{}_{}'.format(i, j, t))
@@ -102,12 +108,12 @@ class MVRPD:
 
         #Term 2: Every mandatory customer is visited exactly once:
         model.addConstrs( quicksum( modelVars['x_{}_{}_{}'.format(i, j, t)]
-         for j in range(self.V) for t in range( self.release[i] , self.dueDates[i] + 1 ) if j != i) == 1
-          for i in range(1, self.V + 1) if i not in self.C )
+         for j in range(self.V + 1) if j != i for t in range( self.release[i] , self.dueDates[i] + 1 ) ) == 1
+         for i in range(1, self.V + 1) if i not in self.C )
 
         #Term 3: Optional customers are visited only once.
         model.addConstrs( quicksum( modelVars['x_{}_{}_{}'.format(i, j, t)]
-         for j in range(self.V) for t in range( self.release[i] , self.dueDates[i] + 1 ) if j != i) <= 1
+         for j in range(self.V + 1) for t in range( self.release[i] , self.dueDates[i] + 1 ) if j != i ) <= 1
           for i in self.C )
 
         #Term 4: Flow Conservation.
@@ -229,7 +235,6 @@ class MVRPD:
         # Objective Function is set.
         model._vars = modelVars
         model.setObjective(obj, GRB.MINIMIZE)
-        
         return model
 
     def exportMPS(self, writePath = os.path.join(os.path.pardir, 'MIPLIB')):
@@ -293,7 +298,7 @@ class MVRPD:
             addlazy = False,
             funlazy= None,
             importNeighborhoods= True,
-            importedNeighborhoods= self.genNeighborhoods(k=20, Kvecinities= False),
+            importedNeighborhoods= self.genNeighborhoods(k=20, Kvecinities= True),
             funTest= None,
             alpha = 1,
             callback = 'vmnd',
@@ -310,7 +315,7 @@ class MVRPD:
 
     def visualizeRes(self):
         self.run()
-        outRoutes = {key : self.resultVars[key] for key in self.resultVars.keys() if self.resultVars[key] >= 0.9
+        outRoutes = {key : self.resultVars[key] for key in self.resultVars.keys() if self.resultVars[key] >= 0.999
          and key[0] == 'x'}
         for t in range(1, self.H + 1):
             edges = [(key[1], key[2]) for key in outRoutes.keys() if key[3] == t]
@@ -325,10 +330,9 @@ class MVRPD:
             nx.draw(G_1, pos, edge_labels = True, with_labels=True, font_weight='bold')
             plt.show()
 
-
 if __name__ == '__main__':
 
-    mvrpd1 = MVRPD(os.path.join( 'MVRPDInstances' , 'ajs1n50_l_3.dat'))
-
+    mvrpd1 = MVRPD(os.path.join( 'MVRPDInstances' , 'ajs2n50_h_3.dat'))
     mvrpd1.visualizeRes()
+    
     

@@ -1,5 +1,6 @@
 from itertools import chain, combinations
 import pandas as pd
+import matplotlib.pyplot as plt
 from gurobipy import *
 
 def powerset(seq):
@@ -86,7 +87,7 @@ def get_matrix_coos(m):
         for coeff, col_idx in get_expr_coos(m.getRow(constr), var_indices):
             yield row_idx, col_idx, coeff
 
-def GenNbsGraph(path = "..//MIPLIB//js1n50_l_3.mps"):
+def GenNbsGraph(path = "MIPLIB//js1n25_h_3.mps"):
     m = read(path)
     nzs = pd.DataFrame(get_matrix_coos(m), columns=['row_idx', 'col_idx', 'coeff'])
 
@@ -94,9 +95,6 @@ def GenNbsGraph(path = "..//MIPLIB//js1n50_l_3.mps"):
     actRow = 0
     varsInRow = []
     for index, row in nzs.iterrows():
-
-        if int(row[0]) % 20 == 0:
-            print(row)
         
         if row['row_idx'] == actRow:
             varsInRow.append(row['col_idx'])
@@ -115,9 +113,10 @@ def GenNbsGraph(path = "..//MIPLIB//js1n50_l_3.mps"):
             varsInRow = []
             varsInRow.append(row.col_idx)
 
-    print(edges)
-    """plt.scatter(nzs.col_idx, nzs.row_idx, 
+    #print(edges)
+    plt.scatter(nzs.col_idx, nzs.row_idx, 
             marker='.', lw=0)
-    plt.show()"""
+    plt.show()
 
-if __name__ == '__main__': pass
+if __name__ == '__main__':
+    GenNbsGraph()
