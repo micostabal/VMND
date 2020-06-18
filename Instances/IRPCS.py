@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from Cuts import Cut, getSubsets, genSubtourLazy, getCheckSubTour
 from Neighborhood import Neighborhoods, genIRPneigh
 from VMNDproc import solver
-from Functions import IRPCStransformKey
+from Functions import IRPCStransformKey, genClusterNeighborhoods
 
 def loadIRPCS(path):
     outdict = {}
@@ -318,7 +318,16 @@ class IRPCS:
         self.pathMPS = os.path.join(writePath , fileName + '{}_{}_{}'.format(self.V, self.H, self.K) + '.mps')
         model.write( self.pathMPS )
 
-    def genNeighborhoods(self):
+    def genNeighborhoods(self, clusterNbhs = False, k = 20):
+        if clusterNbhs:
+            return Neighborhoods(
+                lowest = 1,
+                highest = k,
+                keysList= None,
+                randomSet = False,
+                outerNeighborhoods = genClusterNeighborhoods( self.pathMPS, k)
+            )
+
         outerNhs =  {
         2 : {(kf, tf) : [ '{}_{}_{}_{}_{}'.format('x', i, j, k, t)
             for k in range(1, self.K + 1) for t in range(1, self.H  + 1) for i in range(self.V + 1) for j in range(self.V + 1)
@@ -411,9 +420,9 @@ class IRPCS:
             addlazy = True,
             funlazy= self.genLazy(),
             importNeighborhoods= True,
-            importedNeighborhoods= self.genNeighborhoods(),
+            importedNeighborhoods= self.genNeighborhoods(clusterNbhs= True, k = 35),
             funTest= self.genTestFunction(),
-            alpha = 2,
+            alpha = 1,
             callback = 'vmnd',
             verbose = True
         )
@@ -424,7 +433,6 @@ class IRPCS:
     def analyzeRes(self): pass
 
     def visualizeRes(self):
-
         outRoutes = {key : self.resultVars[key] for key in self.resultVars.keys() if self.resultVars[key] >= 0.99
          and key[0] == 'x'}
         for k in range(1, self.K + 1):
@@ -444,10 +452,10 @@ class IRPCS:
 
 if __name__ == '__main__':
 
-    n = 30
+    n = 55
     K = 3
-    H = 5
+    H = 3
 
-    inst1 = IRPCS(os.path.join('IRPCSInstances', '60nodes.txt'), Vtrunc=n, Htrunc=H, Ktrunc= K)
+    inst1 = IRPCS(os.path.join('IRPCSInstances', '100nodes.txt'), Vtrunc=n, Htrunc=H, Ktrunc= K)
     modelSolved = inst1.run(os.path.join(os.path.pardir , 'MIPLIB', 'SomeInstanceIRPCS{}_{}_{}.mps'.format(n, H, K) ), visualize = True)
     inst1.visualizeRes()

@@ -4,7 +4,7 @@ from math import trunc
 from ConComp import getSubsets
 from Neighborhood import Neighborhoods, genIRPneighborhoods, genIRPneigh
 from Others import loadMPS
-from Functions import transformKey
+from Functions import transformKey, genClusterNeighborhoods
 from Cuts import genSubtourLazy, Cut, getCheckSubTour
 import time
 import os
@@ -51,8 +51,6 @@ def SubtourElimCallback(model, where):
 def VMNDCallback(model, where):
 
     if where == GRB.Callback.MIPSOL:
-
-
 
         vals = model.cbGetSolution(model._vars)
         model._vals = vals
@@ -135,7 +133,7 @@ def VMNDCallback(model, where):
     # Time is being restricted and BC phase hasn't reached its timelimit and we have found a MIP Solution.
     if where == GRB.Callback.MIPSOL and model._incFound and (not model._restrTime or (model._restrTime and tactBC <= totalTimeBC )):
         
-        if model.cbGet(GRB.Callback.MIPSOL_OBJBST) - model._IncBeforeLS <= -1 and model._LSNeighborhoods._depth > model._LSNeighborhoods.lowest:
+        if model.cbGet(GRB.Callback.MIPSOL_OBJBST) - model._IncBeforeLS <= -0.01 and model._LSNeighborhoods._depth > model._LSNeighborhoods.lowest:
             # Incumbent before last Local search is updated.
             model._IncBeforeLS = model.cbGet(GRB.Callback.MIPSOL_OBJBST)
             
@@ -185,30 +183,6 @@ def VMNDCallback(model, where):
         
         # Time starting new B&C phase
         model._BCLastStart = time.time()
-
-    # Final Subtour Check
-    if model._addLazy and model._funLazy is not None and where == GRB.Callback.MIPSOL:
-    
-        vals = model.cbGetSolution(model._vars)
-        model._vals = vals
-        v1 = {}
-        for varname in model._vars.keys():
-            v1[varname] = vals[varname]
-        model._BCVals = v1
-
-        newLazy = model._funLazy(model._vals)
-        
-        if len(newLazy) > 0:
-            for cut in newLazy:
-                model.cbLazy( quicksum( model._vars[key] * cut.nonzero[key] for key in cut.nonzero.keys() )
-                , model._senseDict[cut.sense], cut.rhs)
-                model._BCLazyAdded.append(cut)
-
-        bstBound = model.cbGet(GRB.Callback.MIPSOL_OBJBND)
-        bstObj = model.cbGet(GRB.Callback.MIPSOL_OBJBST)
-
-        gap = abs(bstBound - bstObj) / abs(bstObj)
-        #print('Current Gap is {}%.'.format(round(gap * 100 , 2)))
 
 def localSearch(model):
     model._LSImproved = False
@@ -337,7 +311,7 @@ def solver(
     callback = 'vmnd',
     alpha = 2,
     minBCTime = 7,
-    timeTimitHours = 3
+    timeTimitSeconds = 300
     ):
     model = Model()
     model = loadMPS(path)
@@ -408,7 +382,7 @@ def solver(
         else:
             model.setParam('MIPFocus', 0)
         
-        model.setParam('TimeLimit', timeTimitHours * 3600)
+        model.setParam('TimeLimit', timeTimitSeconds)
         if not verbose:
             model.setParam('OutputFlag', 0)
         if callback == 'vmnd':
@@ -432,9 +406,9 @@ def creator(path):
     return loadMPS(path)
 
 def runSeveral(heuristic = 'vmnd'):
-    for nodes in [25]:
+    for nodes in [20]:
         for vers in [2]:
-            for i in range(1, 2):
+            for i in range(3, 4):
                 path = os.path.join('MIPLIB', 'abs{}n{}_{}.mps'.format(vers, nodes, i))
                 line = path
                 n , H, K = nodes, 3, 2
@@ -446,15 +420,16 @@ def runSeveral(heuristic = 'vmnd'):
                         importNeighborhoods= True,
                         importedNeighborhoods= nsAct,
                         funTest= getCheckSubTour(n, H, K),
-                        alpha = 2,
+                        alpha = 1,
                         callback = heuristic,
                         verbose = True,
-                        minBCTime = 30
-
+                        minBCTime = 6,
+                        timeTimitSeconds= 30
                 )
-                if mout .status == GRB.OPTIMAL:
+                
+                if mout.status == GRB.OPTIMAL or mout.status == GRB.TIME_LIMIT :
                     file = open('{}results.txt'.format(heuristic.upper()), 'a')
-                    line += mout._line + '\n'
+                    line += mout._line + '--MIPGAP: {}--'.format(round(mout.MIPGap, 3)) + '\n'
                     file.write(line.lstrip('MIPLIB//'))
                     file.close()
                     print('Finished Model {}'.format(line.lstrip('MIPLIB//')))
@@ -487,5 +462,29 @@ def compareGaps(path):
 
 
 if __name__ == '__main__':
-    #runSeveral('pure')
-    pass
+    #runSeveral('vmnd')
+
+    pathMPS = os.path.join( 'MIPLIB' , 'abs1n50_3.mps' )
+
+    nbhs = Neighborhoods(
+        lowest = 1,
+        highest = 10,
+        keysList= None,
+        randomSet = False,
+        outerNeighborhoods = genClusterNeighborhoods( pathMPS, nClusters=10 )
+    )
+    print('Finished neighborhood N 0')
+
+    solver(
+        pathMPS,
+        verbose = True,
+        addlazy = False,
+        funlazy = None,
+        importNeighborhoods = True,
+        importedNeighborhoods = None,
+        funTest = None,
+        callback = 'pure',
+        alpha = 1,
+        minBCTime = 0,
+        timeTimitSeconds = 600
+    )

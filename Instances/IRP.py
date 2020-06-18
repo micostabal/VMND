@@ -7,7 +7,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from ConComp import getSubsets
 from Neighborhood import genIRPneighborhoods, Neighborhoods
-from Functions import transformKey
+from Functions import transformKey, genClusterNeighborhoods
 from Cuts import Cut
 from VMNDproc import solver
 from Instance import Instance
@@ -21,7 +21,7 @@ def loadIRP(path='abs1n20_2.dat', sep='\t'):
     }
 
     # The file is opened and parsed line by line
-    file = open(os.path.join('DATFiles', path), 'r')
+    file = open(os.path.join('IRPInstances', path), 'r')
     listLines = list(map(lambda x: x.strip('\n'), file.readlines()))
 
     # First line contains n, h and C
@@ -86,7 +86,7 @@ class IRP(Instance):
         self.h = dictinstance['h']
         self.C = dictinstance['C']
         self.positions = dictinstance['positions']
-        self.K = 3
+        self.K = 7
         self.dist = dictinstance['dist']
         self.resultVars = None
 
@@ -129,7 +129,7 @@ class IRP(Instance):
         # Term a) Objective Function
         obj = quicksum(self.h[0] * modelVars[('I', 0, t)] for t in range(1, self.H + 1)) +\
             quicksum( self.h[i] * modelVars[('I', i, t)]  for t in range(1, self.H + 1) for i in range(1, self.n + 1)) +\
-            quicksum( modelVars[('y', i, j, k, t)] * self.dist[i, j] for k in range(1, self.K + 1) for i in range(self.n + 1) for j in range(self.n + 1)\
+            quicksum( modelVars[('y', i, j, k, t)] * self.dist[i, j] * 0 for k in range(1, self.K + 1) for i in range(self.n + 1) for j in range(self.n + 1)\
             for t in range(1, self.H + 1) for i in range(self.n + 1) if i < j )
 
         # Term b) Inventory at depot.
@@ -147,7 +147,7 @@ class IRP(Instance):
         model.addConstrs( modelVars[('I', i, t)] >= 0 for i in range(self.n + 1) for t in range(1, self.H + 1))
 
         # Term e) Maximum inventory is not exceeded.
-        model.addConstrs( quicksum(modelVars[('q', i, k, t)] for k in range(1, self.K + 1)) <= self.U[i] + modelVars[('I', i, t)]
+        model.addConstrs( quicksum(modelVars[('q', i, k, t)] for k in range(1, self.K + 1)) <= self.U[i] - modelVars[('I', i, t - 1)]
         for i in range(1, self.n + 1) for t in range(1, self.H + 1))
 
         # Term f) Qty cannot be transfred if location is not visited.
@@ -203,7 +203,16 @@ class IRP(Instance):
         self.pathMPS = os.path.join(writePath, writeName + '.mps' )
         model.write(self.pathMPS)
         
-    def genNeighborhoods(self):
+    def genNeighborhoods(self, clusterNbhs = False, nCltrs = 30):
+        if clusterNbhs:
+            return Neighborhoods(
+                lowest = 1,
+                highest = nCltrs,
+                keysList= None,
+                randomSet = False,
+                outerNeighborhoods = genClusterNeighborhoods( self.pathMPS, nClusters = nCltrs )
+            )
+
         outerNhs =  {
         2 : {(kf, tf) : [ '{}_{}_{}_{}_{}'.format('y', i, j, k, t)
             for k in range(1, self.K + 1) for t in range(1, self.H  + 1) for i in range(self.n + 1) for j in range(self.n + 1)
@@ -292,7 +301,7 @@ class IRP(Instance):
             return False
         return checkSubTour
 
-    def run(self, thisAlpha = 5):
+    def run(self, thisAlpha = 1):
         self.exportMPS()
         modelOut = solver(
             path = self.pathMPS,
@@ -302,6 +311,7 @@ class IRP(Instance):
             importedNeighborhoods= self.genNeighborhoods(),
             funTest= self.genTestFunction(),
             alpha = thisAlpha,
+            minBCTime = 0,
             callback = 'vmnd',
             verbose = True
         )
@@ -311,7 +321,7 @@ class IRP(Instance):
     def analyzeRes(self): pass
 
     def visualizeRes(self):
-        outRoutes = {key : self.resultVars[key] for key in self.resultVars.keys() if self.resultVars[key] >= 1
+        outRoutes = {key : self.resultVars[key] for key in self.resultVars.keys() if self.resultVars[key] >= 0.99
          and key[0] == 'y'}
         for k in range(1, self.K + 1):
             for t in range(1, self.H + 1):
@@ -329,7 +339,7 @@ class IRP(Instance):
 
 
 if __name__ == '__main__':
-    inst1 = IRP('abs1n15_1.dat')
+    inst1 = IRP('abs1n30_2.dat')
     inst1.run(thisAlpha = 1)
     inst1.visualizeRes()
 

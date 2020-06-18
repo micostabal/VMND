@@ -14,7 +14,14 @@ class Cut:
         self.rhs = 0
 
     def __str__(self):
-        return str(self.nonzero) + ' ' + self.sense + ' ' + str(self.rhs)
+
+        lhs = ''
+        for elem in self.nonzero.keys():
+             lhs += str(self.nonzero[elem]) + ' * ' + str(elem) + ' + '
+
+        lhs = lhs.rstrip(' + ')
+
+        return lhs + ' ' + self.sense + ' ' + str(self.rhs)
 
 
 # Cut function
@@ -34,11 +41,6 @@ def genSubtourLazy(n, H, K, mainStVarName = 'y', secondStVarName = 'z', keyOpera
                                 edges.append((i, j))
                 
                 subsets = getSubsets(edges, n)
-
-
-                #if len(edges) > 0:
-                #    visualize(edges)
-
 
                 if len(edges) > 0:
                     for subset in subsets:
@@ -105,4 +107,15 @@ def getCheckSubTour(n, H, K, stVarName='y', keyOperator = transformKey):
     return checkSubTour
 
 
-if __name__ == '__main__': pass
+if __name__ == '__main__':
+
+    oneCut = Cut()
+    oneCut.nonzero = {
+        'x_0_1' : 1,
+        'x_0_2' : 1,
+        'x_0_3' : 1,
+        'x_0_4' : 1
+    }
+    oneCut.sense = '<='
+    oneCut.rhs = 1
+    print(str(oneCut))

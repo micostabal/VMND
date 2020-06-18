@@ -61,7 +61,7 @@ class Neighborhoods:
                 strout+= str(len(self.neighborhoods[neighborhood][param])) + '\n'
                 strout += reduce(lambda x, y: str(x) + ' ' + str(y), self.neighborhoods[neighborhood][param])
                 strout += '\n'
-        file = open('Neighborhoods//'+ name + '.txt', 'w')
+        file = open( name + '.txt', 'w')
         file.write(strout)
         file.close()
 

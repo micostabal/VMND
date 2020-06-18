@@ -1,6 +1,5 @@
 from gurobipy import *
 import sys
-from VMNDproc import solver
 import os
 sys.path.append(os.path.pardir)
 from Instance import Instance
@@ -12,7 +11,8 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import KMeans
 from Neighborhood import Neighborhoods
 from Functions import keyOpMVRPD
-
+from VMNDproc import solver
+from ConComp import getSubsets
 
 def loadMVRPD(path):
     outdict = {}
@@ -51,9 +51,10 @@ def loadMVRPD(path):
     return outdict
 
 
-class MVRPD:
+class MVRPD(Instance):
 
     def __init__(self, path = ''):
+        super().__init__()
         self.name = str(os.path.basename(path)).rstrip('.dat')
         self.pathMPS = None
         dictInst = loadMVRPD(path)
@@ -242,8 +243,8 @@ class MVRPD:
         self.pathMPS = os.path.join(writePath , self.name + '.mps')
         model.write( self.pathMPS )
 
-    def genNeighborhoods(self, k = 20, Kvecinities = True):
-        if Kvecinities:
+    def genNeighborhoods(self, k = 20, Kvicinities = True):
+        if Kvicinities:
             X = self.positions
             nbrs = NearestNeighbors(n_neighbors=k, algorithm='ball_tree').fit(X)
             indices = nbrs.kneighbors(X)[1]
@@ -261,6 +262,7 @@ class MVRPD:
                 }
             }
             return Neighborhoods(lowest=1, highest = 2, keysList=None, randomSet=False, outerNeighborhoods = outerMVRPD)
+        
         else:
             X = self.positions
 
@@ -288,7 +290,28 @@ class MVRPD:
         pass
 
     def genTestFunction(self):
-        pass
+        def checkSubTour(vals):
+            vals = { keyOpMVRPD(var) : vals[var] for var in vals.keys() if var[0] == 'x' and vals[var] >= 0.999 }
+
+            errorcnt = 0
+            for t in range(1, self.H + 1):
+                    
+                edges = [(key[1], key[2]) for key in vals.keys() if key[3] == t and key[0] == 'x']
+                if len(edges) > 0:
+
+                    subsets = getSubsets(edges, self.V + 1)
+                    if len(subsets) > 0:
+                        print(t, subsets)
+                        print('---------- ERROR! ----------')
+                        errorcnt += 1
+            
+            if errorcnt == 0:
+                print('[TEST] SUBTOUR CORRECT MODEL')
+                return True
+            else:
+                print('[TEST] SUBTOUR ERRORS')
+            return False
+        return checkSubTour
 
     def run(self):
         self.exportMPS()
@@ -298,8 +321,8 @@ class MVRPD:
             addlazy = False,
             funlazy= None,
             importNeighborhoods= True,
-            importedNeighborhoods= self.genNeighborhoods(k=20, Kvecinities= True),
-            funTest= None,
+            importedNeighborhoods= self.genNeighborhoods(k=20, Kvicinities= True),
+            funTest= self.genTestFunction(),
             alpha = 1,
             callback = 'vmnd',
             verbose = True,
@@ -310,11 +333,10 @@ class MVRPD:
         return modelOut
 
     def analyzeRes(self):
-        # Not built yet.
+        # Not built.
         pass
 
     def visualizeRes(self):
-        self.run()
         outRoutes = {key : self.resultVars[key] for key in self.resultVars.keys() if self.resultVars[key] >= 0.999
          and key[0] == 'x'}
         for t in range(1, self.H + 1):
@@ -330,9 +352,13 @@ class MVRPD:
             nx.draw(G_1, pos, edge_labels = True, with_labels=True, font_weight='bold')
             plt.show()
 
+
 if __name__ == '__main__':
 
-    mvrpd1 = MVRPD(os.path.join( 'MVRPDInstances' , 'ajs2n50_h_3.dat'))
+    ## The instance is created.
+    mvrpd1 = MVRPD(os.path.join( 'MVRPDInstances' , 'ajs4n25_h_3.dat' ) )
+
+    ## .run() method is executed inside the visualizations!
     mvrpd1.visualizeRes()
     
     

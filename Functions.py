@@ -2,6 +2,10 @@ from itertools import chain, combinations
 import pandas as pd
 import matplotlib.pyplot as plt
 from gurobipy import *
+import numpy as np
+from sklearn.cluster import KMeans,SpectralClustering
+from scipy.sparse import csr_matrix
+import os
 
 def powerset(seq):
     """
@@ -87,36 +91,92 @@ def get_matrix_coos(m):
         for coeff, col_idx in get_expr_coos(m.getRow(constr), var_indices):
             yield row_idx, col_idx, coeff
 
-def GenNbsGraph(path = "MIPLIB//js1n25_h_3.mps"):
+def VisualizeNonZeros(path = os.path.join("MIPLIB", "SomeInstanceIRPCS25_7_3.mps" ) ):
+    m = read(path)
+    nzs = pd.DataFrame(get_matrix_coos(m), columns=['row_idx', 'col_idx', 'coeff'])
+
+    actRow = 0
+    varsInRow = []
+
+    for index, row in nzs.iterrows():
+        
+        if row['row_idx'] == actRow:
+            varsInRow.append(row['col_idx'])
+
+            actRow = row.row_idx
+            varsInRow = []
+            varsInRow.append(row.col_idx)
+
+
+
+    plt.scatter(nzs.col_idx, nzs.row_idx, 
+            marker='.', lw=0)
+    plt.show()
+
+def genClusterNeighborhoods(path = os.path.join("MIPLIB", "SomeInstanceIRPCS25_7_3.mps" ), nClusters = 18, verbose = True):
     m = read(path)
     nzs = pd.DataFrame(get_matrix_coos(m), columns=['row_idx', 'col_idx', 'coeff'])
 
     edges = {}
     actRow = 0
     varsInRow = []
+    maxIndex = 0
+
     for index, row in nzs.iterrows():
-        
         if row['row_idx'] == actRow:
             varsInRow.append(row['col_idx'])
-            
         else:
             for x1 in varsInRow:
                 for x2 in varsInRow:
-                    
                     if int(x1) < int(x2):
                         if (int(x1), int(x2)) in edges.keys():
                             edges[( int(x1) , int(x2) )] += 1
+                            edges[( int(x2) , int(x1) )] += 1
                         else:
                             edges[( int(x1) , int(x2) )] = 1
+                            edges[( int(x2) , int(x1) )] = 1
 
             actRow = row.row_idx
             varsInRow = []
             varsInRow.append(row.col_idx)
+    
+    rowArray = []
+    colArray = []
+    dataArray= []
+    for edge in edges.keys():
+        rowArray.append(int(edge[0]))
+        colArray.append(int(edge[1]))
+        dataArray.append(int(edges[edge]))
+    rowArray = np.array(rowArray)
+    colArray = np.array(colArray)
+    dataArray = np.array(dataArray)
 
-    #print(edges)
-    plt.scatter(nzs.col_idx, nzs.row_idx, 
-            marker='.', lw=0)
-    plt.show()
+    print('------ Affinity Matrix successfully stored ------')
+    dim = max(max(rowArray), max(colArray))
+
+    ar1 = csr_matrix((dataArray, (rowArray, colArray)), shape=( dim + 1, dim + 1 ))
+    clustering = SpectralClustering(
+        n_clusters=nClusters,
+        assign_labels="discretize",
+        affinity = 'precomputed',
+        random_state=0).fit(ar1)
+
+    labels = clustering.labels_
+
+    print('------ Cluster labels computed ------')
+    totalVars = [i.VarName for i in m.getVars() ]
+
+    outer = {}
+    for i in range(nClusters):
+
+        forbidden = [ m.getVars()[j].VarName for j in range(len(m.getVars())) if labels[j] == i ]
+
+        outer[i + 1] = {
+            0 : [ var for var in totalVars if var not in forbidden ]
+        }
+        print("------ A {}% of neighborhoods stored ------".format( round(100 * i / nClusters, 3) ) )
+    
+    return outer
 
 if __name__ == '__main__':
-    GenNbsGraph()
+    genClusterNeighborhoods()
