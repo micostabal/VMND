@@ -235,6 +235,8 @@ def localSearch(model):
             addedFixedVarsKeys = []
 
             for keyAct in model._LSNeighborhoods.neighborhoods[act_depth][param_act]:
+
+                ## This code shall be modified
                 locModel.addConstr(locModel._vars[keyAct] == model._BCVals[keyAct], name=keyAct)
                 addedFixedVarsKeys.append(keyAct)
             locModel.update()
@@ -406,9 +408,9 @@ def creator(path):
     return loadMPS(path)
 
 def runSeveral(heuristic = 'vmnd'):
-    for nodes in [20]:
+    for nodes in [15]:
         for vers in [2]:
-            for i in range(3, 4):
+            for i in range(2, 3):
                 path = os.path.join('MIPLIB', 'abs{}n{}_{}.mps'.format(vers, nodes, i))
                 line = path
                 n , H, K = nodes, 3, 2
@@ -424,7 +426,7 @@ def runSeveral(heuristic = 'vmnd'):
                         callback = heuristic,
                         verbose = True,
                         minBCTime = 6,
-                        timeTimitSeconds= 30
+                        timeTimitSeconds= 100
                 )
                 
                 if mout.status == GRB.OPTIMAL or mout.status == GRB.TIME_LIMIT :
@@ -464,27 +466,4 @@ def compareGaps(path):
 if __name__ == '__main__':
     #runSeveral('vmnd')
 
-    pathMPS = os.path.join( 'MIPLIB' , 'abs1n50_3.mps' )
-
-    nbhs = Neighborhoods(
-        lowest = 1,
-        highest = 10,
-        keysList= None,
-        randomSet = False,
-        outerNeighborhoods = genClusterNeighborhoods( pathMPS, nClusters=10 )
-    )
-    print('Finished neighborhood N 0')
-
-    solver(
-        pathMPS,
-        verbose = True,
-        addlazy = False,
-        funlazy = None,
-        importNeighborhoods = True,
-        importedNeighborhoods = None,
-        funTest = None,
-        callback = 'pure',
-        alpha = 1,
-        minBCTime = 0,
-        timeTimitSeconds = 600
-    )
+    pass
