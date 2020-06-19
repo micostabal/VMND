@@ -138,10 +138,9 @@ class OISRC(Instance):
         self.pathMPS = os.path.join(writePath, self.name + '.mps' )
         model.write(self.pathMPS)
 
-    def genNeighborhoods(self, clusters = 10):
+    def genNeighborhoods(self, clusters = 20):
         outer = genClusterNeighborhoods(self.pathMPS, clusters)
         return Neighborhoods(lowest = 1, highest = clusters, keysList = None, randomSet = False, outerNeighborhoods = outer )
-
 
     def genLazy(self): pass
 
@@ -150,7 +149,7 @@ class OISRC(Instance):
     def run(self):
         self.exportMPS()
 
-        nbhs = self.genNeighborhoods(clusters=10)
+        nbhs = self.genNeighborhoods()
 
         exModel = solver(
             self.pathMPS,
@@ -173,6 +172,6 @@ class OISRC(Instance):
 
 
 if __name__ == '__main__':
-    si1 = OISRC(os.path.join('OISRCInstances', 'instance_4_2_100_1.oisrc'))
+    si1 = OISRC(os.path.join('OISRCInstances', 'instance_15_2_170_1.oisrc'))
 
     si1.run()
