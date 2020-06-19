@@ -358,7 +358,7 @@ if __name__ == '__main__':
     ## The instance is created.
     mvrpd1 = MVRPD(os.path.join( 'MVRPDInstances' , 'ajs4n25_h_3.dat' ) )
 
-    ## .run() method is executed inside the visualizations!
-    mvrpd1.visualizeRes()
+    ## .run() method is executed outside the visualizations!
+    mvrpd1.run()
     
     
