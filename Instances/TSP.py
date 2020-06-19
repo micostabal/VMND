@@ -144,6 +144,9 @@ class TSP(Instance):
     def analyzeRes(self): pass
 
     def visualizeRes(self):
+        if self.resultVars is None:
+            print('The model must be run first before visualizing results! Execute first the run method')
+            return 0
         outRoutes = {key : self.resultVars[key] for key in self.resultVars.keys() if self.resultVars[key] >= 1}
 
         edges = [(key[1], key[2]) for key in outRoutes.keys()]

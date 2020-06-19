@@ -321,6 +321,9 @@ class IRP(Instance):
     def analyzeRes(self): pass
 
     def visualizeRes(self):
+        if self.resultVars is None:
+            print('The model must be run first before visualizing results! Execute first the run method')
+            return 0
         outRoutes = {key : self.resultVars[key] for key in self.resultVars.keys() if self.resultVars[key] >= 0.99
          and key[0] == 'y'}
         for k in range(1, self.K + 1):
@@ -340,7 +343,7 @@ class IRP(Instance):
 
 if __name__ == '__main__':
     inst1 = IRP('abs1n30_2.dat')
-    inst1.run(thisAlpha = 1)
+    #inst1.run(thisAlpha = 1)
     inst1.visualizeRes()
 
     print('----------------- Program reached End of Execution Succesfully -----------------')

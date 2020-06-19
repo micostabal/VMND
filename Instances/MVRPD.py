@@ -337,6 +337,9 @@ class MVRPD(Instance):
         pass
 
     def visualizeRes(self):
+        if self.resultVars is None:
+            print('The model must be run first before visualizing results! Execute first the run method')
+            return 0
         outRoutes = {key : self.resultVars[key] for key in self.resultVars.keys() if self.resultVars[key] >= 0.999
          and key[0] == 'x'}
         for t in range(1, self.H + 1):
@@ -358,7 +361,7 @@ if __name__ == '__main__':
     ## The instance is created.
     mvrpd1 = MVRPD(os.path.join( 'MVRPDInstances' , 'ajs4n25_h_3.dat' ) )
 
-    ## .run() method is executed outside the visualizations!
-    mvrpd1.run()
+    #mvrpd1.run()
+    mvrpd1.visualizeRes()
     
     

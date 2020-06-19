@@ -433,6 +433,9 @@ class IRPCS:
     def analyzeRes(self): pass
 
     def visualizeRes(self):
+        if self.resultVars is None:
+            print('The model must be run first before visualizing results! Execute first the run method')
+            return 0
         outRoutes = {key : self.resultVars[key] for key in self.resultVars.keys() if self.resultVars[key] >= 0.99
          and key[0] == 'x'}
         for k in range(1, self.K + 1):
