@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import KMeans
 from Neighborhood import Neighborhoods
-from Functions import keyOpMVRPD
+from Functions import keyOpMVRPD, genClusterNeighborhoods
 from VMNDproc import solver
 from ConComp import getSubsets
 
@@ -21,7 +21,7 @@ def loadMVRPD(path):
     outdict['V'] = int(lines[0][0]) - 1
     outdict['H'] = int(lines[0][1])
     outdict['Q'] = int(lines[0][2])
-    outdict['m'] = 3
+    outdict['m'] = 6
     outdict['h'] = {i : 1 for i in range(1, outdict['V'] + 1)}
     outdict['p'] = {i : 1 for i in range(1, outdict['V'] + 1)}
     outdict['demand'] = {i : 1 for i in range(1, outdict['V'] + 1)}
@@ -39,7 +39,7 @@ def loadMVRPD(path):
             outdict['p'][ind] = 10 * outdict['h'][ind]
             
             outdict['duedates'][ind] = int(i[5])
-            outdict['release'][ind] = int(max(1, outdict['duedates'][ind] - 2))
+            outdict['release'][ind] = int(max(1 , outdict['duedates'][ind] - 2))
 
 
     outdict['cost'] = np.zeros(shape = (outdict['V'] + 1, outdict['V'] + 1))
@@ -86,10 +86,6 @@ class MVRPD(Instance):
                         
                         modelVars['x_{}_{}_{}'.format(i, j, t)] = \
                         model.addVar(vtype = GRB.BINARY, name='x_{}_{}_{}'.format(i, j, t))
-
-                        if i > 0:
-                            if t > self.dueDates[i] or t < self.release[i]:
-                                model.addConstr(modelVars['x_{}_{}_{}'.format(i, j, t)] == 0)
 
                         modelVars['l_{}_{}_{}'.format(i, j, t)] = \
                         model.addVar(0, GRB.INFINITY, vtype = GRB.CONTINUOUS, name='l_{}_{}_{}'.format(i, j, t))
@@ -146,10 +142,19 @@ class MVRPD(Instance):
 
         #Term 9&10: Variable types are declared in the creation of the variables.
 
+        #Term 10: l is nonnegative
+        model.addConstrs( modelVars['l_{}_{}_{}'.format(i, j, t)] >= 0
+         for t in range(1, self.H + 1) for i in range(self.V + 1) for j in range(self.V + 1) if i != j )
+        
+        # Clients outside its time window are set to zero.
+        model.addConstrs( modelVars['x_{}_{}_{}'.format(i, j, t)] == 0
+         for t in range(1, self.H + 1) for j in range(self.V + 1) for i in range(self.V + 1) if i != j and i > 0 and (
+         t > self.dueDates[i] or t < self.release[i] ) )
+
         ## the sets calS (caligraphic S) and qtij (q_(t_i)_(t_j)) are defined.
         calS = {
-            (t1, t2) : [i for i in range(1, self.V + 1) if self.release[i] >= t1 and self.dueDates[i] <= t2 ]
-             for t1 in range(1, self.H + 1) for t2 in range(1, self.H + 1) if t1 <= t2 
+            (t1, t2) : [i for i in range(1, self.V + 1) if self.release[i] >= t1 and self.dueDates[i] <= t2 and i not in self.C ]
+             for t1 in range(1, self.H + 1) for t2 in range(1, self.H + 1) if t1 <= t2
         }
         qt1t2 = {}
         for t1 in range(1, self.H + 1):
@@ -188,14 +193,14 @@ class MVRPD(Instance):
                 self.q[i] * (1 - quicksum( modelVars['x_{}_{}_{}'.format(i, j, t)] for t in range(self.release[i], self.H + 1)
                  for j in range(self.V + 1) if i != j ) )
              for i in self.C )
-            <= self.Q * quicksum( modelVars['x_{}_{}_{}'.format(0, j, t)] for t in range(tPrime + 1, self.H) for j in range(1, self.V + 1) )
+            <= self.Q * quicksum( modelVars['x_{}_{}_{}'.format(0, j, t)] for t in range(tPrime + 1, self.H + 1) for j in range(1, self.V + 1) )
              for tPrime in range(1, self.H + 1)
         )
 
         #Term 14: Tightening Cut, added from Archetti et al 2015.
         model.addConstrs(
-            quicksum( modelVars['x_{}_{}_{}'.format(0, j, t)] for t in range(t1, t2 + 1) for j in range(1, self.V + 1)) >= 
-            ceil(qt1t2[(t1, t2)] / self.Q)
+            quicksum( modelVars['x_{}_{}_{}'.format(0, j, t)] for t in range(t1, t2 + 1) for j in range(1, self.V + 1) ) >= 
+            ceil(qt1t2[(t1, t2)] / self.Q )
              for t1 in range(1, self.H + 1) for t2 in range(1, self.H + 1) if t1 <= t2
         )
 
@@ -214,7 +219,7 @@ class MVRPD(Instance):
              self.m * self.Q * (t2 - t1 + 1)
              for t1 in range(1, self.H + 1) for t2 in range(1, self.H + 1) if t1 <= t2 and len(calS[(t1, t2)]) > 0
         )
-
+        
         # New valid cuts proposed by Larraín et al 2019.
 
         #Term 17: New Valid Cut.
@@ -243,7 +248,59 @@ class MVRPD(Instance):
         self.pathMPS = os.path.join(writePath , self.name + '.mps')
         model.write( self.pathMPS )
 
-    def genNeighborhoods(self, k = 20, Kvicinities = True):
+    def genNeighborhoods(self, k = 25, Kvicinities = False, funNbhs = False, genFromCluster = False):
+        if genFromCluster:
+            numClu = int(self.H * self.V / 10)
+            klist = ['x_{}_{}_{}'.format(i, j, t) for i in range(self.V + 1) for j in range(self.V + 1) for t in range(1, self.H + 1) ]
+            return Neighborhoods(
+                lowest = 1,
+                highest = numClu,
+                keysList= None,
+                randomSet=False,
+                outerNeighborhoods=genClusterNeighborhoods(self.pathMPS, numClu),
+                useFunction=False,
+                funNeighborhoods=None
+                )
+        if funNbhs:
+
+            X = self.positions
+            nbrs = NearestNeighbors(n_neighbors=k, algorithm='ball_tree').fit(X)
+            indices = nbrs.kneighbors(X)[1]
+            
+            def fNbhs(varName, depth, param):
+                elements = varName.split('_')
+                if len(elements) < 4:
+                    return False
+                else:
+                    tl = int(elements[3])
+                    il = int(elements[1])
+                    jl = int(elements[2])
+
+                    if depth == 1:
+                        return tl != param
+                    elif depth == 2:
+                        return il not in indices[param] and jl not in indices[param]
+                    else:
+                        print('Error 23 Nbhds Function!! ')
+                        return 0
+                return False
+
+            outer = {
+                1 : tuple([ tf for tf in range(1, self.H + 1) ]),
+                2 : tuple([ i for i in range(1, self.V + 1) ])
+            }
+
+            klist = ['x_{}_{}_{}'.format( i, j, t )
+             for t in range(1, self.H  + 1) for i in range(self.V + 1) for j in range(self.V + 1) if i != j]
+            return Neighborhoods(
+                lowest = 1,
+                highest = 2,
+                keysList= klist,
+                randomSet=False,
+                outerNeighborhoods=outer,
+                funNeighborhoods= fNbhs,
+                useFunction=True)
+
         if Kvicinities:
             X = self.positions
             nbrs = NearestNeighbors(n_neighbors=k, algorithm='ball_tree').fit(X)
@@ -251,17 +308,17 @@ class MVRPD(Instance):
 
             outerMVRPD = {
                 1 : { # Period Neighborhood
-                    tAct : ['x_{}_{}_{}'.format(i, j, t) for i in range(self.V + 1)
-                    for j in range(self.V + 1) for t in range(1, self.H + 1) if i != j and t != tAct ]
+                    tAct : tuple(['x_{}_{}_{}'.format(i, j, t) for i in range(self.V + 1)
+                    for j in range(self.V + 1) for t in range(1, self.H + 1) if i != j and t != tAct ])
                     for tAct in range(1, self.H + 1)
                 },
                 2 : { # k Vecinity Neighborhood
-                    ip : ['x_{}_{}_{}'.format(i, j, t) for i in range(self.V + 1) for j in range(self.V + 1) for t in range(1, self.H + 1)
-                    if i != j and ( i in indices[ip] or j in indices[ip] ) ]
+                    ip : tuple(['x_{}_{}_{}'.format(i, j, t) for i in range(self.V + 1) for j in range(self.V + 1) for t in range(1, self.H + 1)
+                    if i != j and ( i in indices[ip] or j in indices[ip] ) ])
                     for ip in range(self.V + 1)
                 }
             }
-            return Neighborhoods(lowest=1, highest = 2, keysList=None, randomSet=False, outerNeighborhoods = outerMVRPD)
+            return Neighborhoods(lowest=1, highest = 2, keysList=None, randomSet=False, outerNeighborhoods = outerMVRPD, useFunction = False)
         
         else:
             X = self.positions
@@ -272,14 +329,14 @@ class MVRPD(Instance):
 
             outerMVRPD = {
                 1 : { # Period Neighborhood
-                    tAct : ['x_{}_{}_{}'.format(i, j, t) for i in range(self.V + 1)
-                    for j in range(self.V + 1) for t in range(1, self.H + 1) if i != j and t != tAct ]
+                    tAct : tuple(['x_{}_{}_{}'.format(i, j, t) for i in range(self.V + 1)
+                    for j in range(self.V + 1) for t in range(1, self.H + 1) if i != j and t != tAct ])
                     for tAct in range(1, self.H + 1)
                 },
                 2 : { # K means Neighborhood
-                    (selK, tAct) : ['x_{}_{}_{}'.format(i, j, t)
+                    (selK, tAct) : tuple([ 'x_{}_{}_{}'.format(i, j, t)
                      for i in range(self.V + 1) for j in range(self.V + 1) for t in range(1, self.H + 1)
-                    if i != j and t != tAct and labels[i] != selK and labels[j] != selK ]
+                    if i != j and t != tAct and labels[i] != selK and labels[j] != selK ])
                     for selK in range(kmp) for tAct in range(1, self.H + 1)
                 }
             }
@@ -321,15 +378,14 @@ class MVRPD(Instance):
             addlazy = False,
             funlazy= None,
             importNeighborhoods= True,
-            importedNeighborhoods= self.genNeighborhoods(k=20, Kvicinities= True),
+            importedNeighborhoods= self.genNeighborhoods(Kvicinities=True),
             funTest= self.genTestFunction(),
             alpha = 1,
             callback = 'vmnd',
             verbose = True,
-            minBCTime = 10
+            minBCTime = 0
         )
         self.resultVars = {keyOpMVRPD(var.varName) : var.x for var in modelOut.getVars() if var.x > 0 }
-
         return modelOut
 
     def analyzeRes(self):
@@ -359,9 +415,6 @@ class MVRPD(Instance):
 if __name__ == '__main__':
 
     ## The instance is created.
-    mvrpd1 = MVRPD(os.path.join( 'MVRPDInstances' , 'ajs4n25_h_3.dat' ) )
-
-    #mvrpd1.run()
-    mvrpd1.visualizeRes()
-    
+    mvrpd1 = MVRPD(os.path.join( 'MVRPDInstances' , 'ajs1n50_h_3.dat' ) )
+    mvrpd1.run()
     

@@ -114,7 +114,7 @@ class OISRC(Instance):
                 modelVars[Vname] = model.addVar( vtype = GRB.BINARY, name = Vname)
         
         # Term 2: Objective Function
-        obj = quicksum( self.v[j] * modelVars['x_{}_{}'.format(i, j)] for i in range(self.m) for j in range(self.n) )
+        obj = quicksum( (-1) * self.v[j] * modelVars['x_{}_{}'.format(i, j)] for i in range(self.m) for j in range(self.n) )
 
         # Term 3: Each job is assigned to at most 1 machine.
         model.addConstrs( quicksum(modelVars['x_{}_{}'.format(i, j)] for i in range(self.m)) <= 1 for j in range(self.n) )
@@ -159,7 +159,7 @@ class OISRC(Instance):
             importNeighborhoods= True, 
             importedNeighborhoods= nbhs,
             funTest= None, 
-            callback = 'vmnd',
+            callback = 'pure',
             alpha = 1,
             minBCTime= 5
         )

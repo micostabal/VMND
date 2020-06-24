@@ -86,7 +86,7 @@ class IRP(Instance):
         self.h = dictinstance['h']
         self.C = dictinstance['C']
         self.positions = dictinstance['positions']
-        self.K = 7
+        self.K = 8
         self.dist = dictinstance['dist']
         self.resultVars = None
 
@@ -102,91 +102,81 @@ class IRP(Instance):
                     for j in range(self.n + 1):
                         if i < j:
                             if (i != j and i > 0):
-                                modelVars[('y', i, j, k, t)] = model.addVar(vtype=GRB.BINARY,
+                                modelVars['y_{}_{}_{}_{}'.format(i, j, k, t)] = model.addVar(vtype=GRB.BINARY,
                                 name='y_{}_{}_{}_{}'.format(i, j, k, t))
                             elif i != j and i == 0:
-                                modelVars[('y', i, j, k, t)] = model.addVar(lb = 0, ub = 2, vtype=GRB.INTEGER,
+                                modelVars['y_{}_{}_{}_{}'.format(i, j, k, t)] = model.addVar(lb = 0, ub = 2, vtype=GRB.INTEGER,
                                 name='y_{}_{}_{}_{}'.format(i, j, k, t))
 
 
                 for i in range(self.n + 1):
-                    modelVars[('z', i, k, t)] = model.addVar(vtype=GRB.BINARY,
+                    modelVars['z_{}_{}_{}'.format(i, k, t)] = model.addVar(vtype=GRB.BINARY,
                     name='z_{}_{}_{}'.format(i, k, t))
 
         # Variables I and q are created.
         for t in range(1, self.H + 1):
             for i in range(self.n + 1):
-                modelVars[ ('I', i, t) ] = model.addVar(lb = 0, vtype = GRB.CONTINUOUS, name='I_{}_{}'.format(i, t))
+                modelVars[ 'I_{}_{}'.format(i, t) ] = model.addVar(lb = 0, vtype = GRB.CONTINUOUS, name='I_{}_{}'.format(i, t))
 
                 for k in range(1, self.K + 1):
-                    modelVars[('q', i, k, t)] = model.addVar(lb = 0, vtype = GRB.CONTINUOUS, name='q_{}_{}_{}'.format(i, k, t))
+                    modelVars['q_{}_{}_{}'.format(i, k, t)] = model.addVar(lb = 0, vtype = GRB.CONTINUOUS, name='q_{}_{}_{}'.format(i, k, t))
 
         # Inventory at t = 0.
-        modelVars[('I', 0, 0)] = model.addVar(lb = self.I0[0], ub = self.I0[0], vtype = GRB.CONTINUOUS, name='I_0_0')
+        modelVars['I_0_0'] = model.addVar(lb = self.I0[0], ub = self.I0[0], vtype = GRB.CONTINUOUS, name='I_0_0')
         for i in range(1, self.n + 1):
-            modelVars[ ('I', i, 0) ] = model.addVar(lb = self.I0[i], ub = self.I0[i], vtype = GRB.CONTINUOUS, name='I_{}_{}'.format(i, 0))
+            modelVars[ 'I_{}_{}'.format(i, 0) ] = model.addVar(lb = self.I0[i], ub = self.I0[i], vtype = GRB.CONTINUOUS, name='I_{}_{}'.format(i, 0))
 
         # Term a) Objective Function
-        obj = quicksum(self.h[0] * modelVars[('I', 0, t)] for t in range(1, self.H + 1)) +\
-            quicksum( self.h[i] * modelVars[('I', i, t)]  for t in range(1, self.H + 1) for i in range(1, self.n + 1)) +\
-            quicksum( modelVars[('y', i, j, k, t)] * self.dist[i, j] * 0 for k in range(1, self.K + 1) for i in range(self.n + 1) for j in range(self.n + 1)\
+        obj = quicksum(self.h[0] * modelVars['I_{}_{}'.format(0, t)] for t in range(1, self.H + 1)) +\
+            quicksum( self.h[i] * modelVars['I_{}_{}'.format(i, t)]  for t in range(1, self.H + 1) for i in range(1, self.n + 1)) +\
+            quicksum( modelVars['y_{}_{}_{}_{}'.format(i, j, k, t)] * self.dist[i, j] * 0 for k in range(1, self.K + 1) for i in range(self.n + 1) for j in range(self.n + 1)\
             for t in range(1, self.H + 1) for i in range(self.n + 1) if i < j )
 
         # Term b) Inventory at depot.
-        model.addConstrs( modelVars[('I', 0, t)] == modelVars[('I', 0, t - 1)] + self.r[0]
-        - quicksum( modelVars[('q', i, k, t)] for i in range(1, self.n + 1) for k in range(1, self.K + 1))
+        model.addConstrs( modelVars['I_{}_{}'.format(0, t)] == modelVars['I_{}_{}'.format(0, t - 1)] + self.r[0]
+        - quicksum( modelVars['q_{}_{}_{}'.format(i, k, t)] for i in range(1, self.n + 1) for k in range(1, self.K + 1))
         for t in range(1, self.H + 1))
 
 
         # Term c) Inventory at N' location.
-        model.addConstrs( modelVars[('I', i, t)] == modelVars[('I', i, t - 1)] - self.r[i]
-        + quicksum( modelVars[('q', i, k, t)] for k in range(1, self.K + 1))
+        model.addConstrs( modelVars['I_{}_{}'.format(i, t)] == modelVars['I_{}_{}'.format(i, t - 1)] - self.r[i]
+        + quicksum( modelVars['q_{}_{}_{}'.format(i, k, t)] for k in range(1, self.K + 1))
         for t in range(1, self.H + 1) for i in range(1, self.n + 1))
 
         # Term d) Force absence of stockouts
-        model.addConstrs( modelVars[('I', i, t)] >= 0 for i in range(self.n + 1) for t in range(1, self.H + 1))
+        model.addConstrs( modelVars['I_{}_{}'.format(i, t)] >= 0 for i in range(self.n + 1) for t in range(1, self.H + 1))
 
         # Term e) Maximum inventory is not exceeded.
-        model.addConstrs( quicksum(modelVars[('q', i, k, t)] for k in range(1, self.K + 1)) <= self.U[i] - modelVars[('I', i, t - 1)]
+        model.addConstrs( quicksum(modelVars['q_{}_{}_{}'.format(i, k, t)] for k in range(1, self.K + 1)) <= self.U[i] - modelVars['I_{}_{}'.format(i, t - 1)]
         for i in range(1, self.n + 1) for t in range(1, self.H + 1))
 
         # Term f) Qty cannot be transfred if location is not visited.
-        model.addConstrs( modelVars[('q', i, k, t)] <= self.U[i] * modelVars[('z', i, k, t)]
+        model.addConstrs( modelVars['q_{}_{}_{}'.format(i, k, t)] <= self.U[i] * modelVars['z_{}_{}_{}'.format(i, k, t)]
         for i in range(1, self.n + 1) for t in range(1, self.H + 1) for k in range(1, self.K + 1) )
 
         # Term g) Vehicle capacity constraint.
-        model.addConstrs( quicksum(modelVars[('q', i, k, t)] for i in range(1, self.n + 1)) <= self.C * modelVars[('z', 0, k, t)]
+        model.addConstrs( quicksum(modelVars['q_{}_{}_{}'.format(i, k, t)] for i in range(1, self.n + 1)) <= self.C * modelVars['z_{}_{}_{}'.format(0, k, t)]
         for t in range(1, self.H + 1) for k in range(1, self.K + 1) )
 
 
         # Term h) Location cannot be visited by more than one vehicle per period.
-        model.addConstrs( quicksum(modelVars[('z', i, k, t)] for k in range(1, self.K + 1)) <= 1
+        model.addConstrs( quicksum(modelVars['z_{}_{}_{}'.format(i, k, t)] for k in range(1, self.K + 1)) <= 1
         for t in range(1, self.H + 1) for i in range(1, self.n + 1) )
 
         # Term i) Node degree constraint.
-        model.addConstrs( quicksum(modelVars[('y', i, j, k, t)] for j in range(self.n + 1) if i < j)
-        + quicksum(modelVars[('y', j, i, k, t)] for j in range(self.n + 1) if j < i ) == 2 * modelVars[('z', i, k, t)]
+        model.addConstrs( quicksum(modelVars['y_{}_{}_{}_{}'.format(i, j, k, t)] for j in range(self.n + 1) if i < j)
+        + quicksum(modelVars['y_{}_{}_{}_{}'.format(j, i, k, t)] for j in range(self.n + 1) if j < i ) == 2 * modelVars['z_{}_{}_{}'.format(i, k, t)]
         for t in range(1, self.H + 1) for i in range(self.n + 1) for k in range(1, self.K + 1) )
 
         # Term j) Subtour elimination (Commented because of its LazyConstraint nature).
-        """
-        gen_subset = powerset([i for i in range(1, inst.n + 1)])
-        for S_num in range(1 << inst.n ):
-            # S_act is a list of different elements of the subset.
-            S_act = gen_subset.__next__()
-
-            if len(S_act) >= 2 and len(S_act) <= inst.n - 1:
-                model.addConstrs( quicksum( modelVars[('y', i, j, k, t)] for i in S_act
-                for j in S_act if i < j) <= quicksum(modelVars[('z', i, k, t)] for i in S_act) - modelVars[('z', s, k, t)]
-                for s in S_act for t in range(1, inst.H + 1) for k in range(1, inst.K + 1) )
-        """
 
         # Term k) Symmetry Breaking.
-        model.addConstrs( modelVars[('z', 0, k, t)] >= modelVars[('z', 0, k + 1, t)] for t in range(1, self.H + 1) for k in range(1, self.K))
+        model.addConstrs( modelVars['z_{}_{}_{}'.format(0, k, t)] >= modelVars['z_{}_{}_{}'.format(0, k + 1, t)]
+         for t in range(1, self.H + 1) for k in range(1, self.K))
 
         # Term l) Symmetry Breaking.
-        model.addConstrs( quicksum( 2**(j - i) * modelVars[('z', i, k, t)] for i in range(1, j + 1))
-        >= quicksum( 2**(j - i) * modelVars[('z', i, k + 1, t)] for i in range(1, j + 1))
+        model.addConstrs( quicksum( 2**(j - i) * modelVars['z_{}_{}_{}'.format(i, k, t)] for i in range(1, j + 1))
+        >= quicksum( 2**(j - i) * modelVars['z_{}_{}_{}'.format(i, k + 1, t)] for i in range(1, j + 1))
         for j in range(1, self.n + 1) for t in range(1, self.H + 1) for k in range(1, self.K))
 
         # terms m), n), o) and p) are already incluided in the var. definition.
@@ -198,48 +188,90 @@ class IRP(Instance):
 
     def exportMPS(self, writePath = os.path.join(os.path.pardir, 'MIPLIB'), writeName = ''):
         if len(writeName) == 0:
-            writeName = self.name
+            writeName = self.name.strip('.dat')
         model = self.createInstance()
         self.pathMPS = os.path.join(writePath, writeName + '.mps' )
         model.write(self.pathMPS)
         
-    def genNeighborhoods(self, clusterNbhs = False, nCltrs = 30):
+    def genNeighborhoods(self, clusterNbhs = False, nCltrs = 30, funNbhs = False):
+        if funNbhs:
+            
+            def fNbhs(varName, depth, param):
+                elements = varName.split('_')
+                if len(elements) < 5:
+                    return False
+                else:
+                    kl = int(elements[3])
+                    tl = int(elements[4])
+
+                    if depth == 2:
+                        return (kl, tl) != param
+                    elif depth == 3:
+                        return tl != param
+                    elif depth == 4:
+                        return kl != param
+                    elif depth == 5:
+                        return tl != param[0] and tl != param[1]
+                    else:
+                        print('Error 23 Nbhds Function!! ')
+                        return 0
+                return False
+
+            outer = {
+                2 : tuple([ (kf, tf) for kf in range(1, self.K + 1) for tf in range(1, self.H + 1) ]),
+                3 : tuple([ tf for tf in range(1, self.H + 1) ]),
+                4 : tuple([ kf for kf in range(1, self.K + 1) ]), 
+                5 : tuple([ (tf1, tf2) for tf1 in range(1, self.H  + 1) for tf2 in range(1, self.H  + 1) if tf1 < tf2 ])
+            }
+
+            klist = ['y_{}_{}_{}_{}'.format( i, j, k, t )
+             for k in range(1, self.K + 1) for t in range(1, self.H  + 1) for i in range(self.n + 1) for j in range(self.n + 1) if i < j]
+            return Neighborhoods(
+                lowest = 2,
+                highest = 5,
+                keysList= klist,
+                randomSet=False,
+                outerNeighborhoods=outer,
+                funNeighborhoods= fNbhs,
+                useFunction=True)
+
         if clusterNbhs:
             return Neighborhoods(
                 lowest = 1,
                 highest = nCltrs,
                 keysList= None,
                 randomSet = False,
-                outerNeighborhoods = genClusterNeighborhoods( self.pathMPS, nClusters = nCltrs )
+                outerNeighborhoods = genClusterNeighborhoods( self.pathMPS, nClusters = nCltrs ),
+                useFunction=False
             )
 
         outerNhs =  {
-        2 : {(kf, tf) : [ '{}_{}_{}_{}_{}'.format('y', i, j, k, t)
+        2 : {(kf, tf) : tuple([ '{}_{}_{}_{}_{}'.format('y', i, j, k, t)
             for k in range(1, self.K + 1) for t in range(1, self.H  + 1) for i in range(self.n + 1) for j in range(self.n + 1)
-            if i < j and (k, t) != (kf, tf) ]
+            if i < j and (k, t) != (kf, tf) ])
                 for kf in range(1, self.K + 1) for tf in range(1, self.H + 1)
         },
         3: {
-            tf : [ '{}_{}_{}_{}_{}'.format('y', i, j, k, t)
+            tf : tuple([ '{}_{}_{}_{}_{}'.format('y', i, j, k, t)
             for k in range(1, self.K + 1) for t in range(1, self.H  + 1) for i in range(self.n + 1) for j in range(self.n + 1)
-            if i < j and t != tf]
+            if i < j and t != tf ])
             for tf in range(1, self.H + 1)
         },
         
         4: {
-            kf : [ '{}_{}_{}_{}_{}'.format('y', i, j, k, t)
+            kf : tuple([ '{}_{}_{}_{}_{}'.format('y', i, j, k, t)
             for k in range(1, self.K + 1) for t in range(1, self.H  + 1) for i in range(self.n + 1) for j in range(self.n + 1)
-            if i < j and k != kf ]
+            if i < j and k != kf ])
             for kf in range(1, self.K + 1)
         },
         5: {
-            (tf1, tf2) : [ '{}_{}_{}_{}_{}'.format('y', i, j, k, t)
+            (tf1, tf2) : tuple([ '{}_{}_{}_{}_{}'.format('y', i, j, k, t)
             for k in range(1, self.K + 1) for t in range(1, self.H  + 1) for i in range(self.n + 1) for j in range(self.n + 1)
-            if i < j and tf1 != t and tf2 != t]
+            if i < j and tf1 != t and tf2 != t ])
             for tf1 in range(1, self.H  + 1) for tf2 in range(1, self.H  + 1) if tf1 < tf2
         }
         }
-        return Neighborhoods(lowest = 2, highest = 5, keysList = None, randomSet = False, outerNeighborhoods = outerNhs)
+        return Neighborhoods(lowest = 2, highest = 5, keysList = None, randomSet = False, outerNeighborhoods = outerNhs, useFunction=False)
 
     def genLazy(self):
         def f1(solValues):
@@ -308,7 +340,7 @@ class IRP(Instance):
             addlazy = True,
             funlazy= self.genLazy(),
             importNeighborhoods= True,
-            importedNeighborhoods= self.genNeighborhoods(),
+            importedNeighborhoods= self.genNeighborhoods(clusterNbhs=False, nCltrs = 10, funNbhs = True),
             funTest= self.genTestFunction(),
             alpha = thisAlpha,
             minBCTime = 0,
@@ -342,8 +374,9 @@ class IRP(Instance):
 
 
 if __name__ == '__main__':
-    inst1 = IRP('abs1n30_2.dat')
+    inst1 = IRP('abs4n25_4.dat')
     #inst1.run(thisAlpha = 1)
+    inst1.run()
     inst1.visualizeRes()
 
     print('----------------- Program reached End of Execution Succesfully -----------------')

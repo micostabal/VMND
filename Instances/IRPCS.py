@@ -69,6 +69,7 @@ class IRPCS:
     def __init__(self, path, Vtrunc = 15, Htrunc = 8, Ktrunc = 3):
         inDict = loadIRPCS(path)
         self.pathMPS = None
+        self.name = 'IRPC_{}_{}_{}'.format(Vtrunc, Htrunc, Ktrunc)
         self.V = min(inDict['V'], Vtrunc)
         self.H = min(inDict['H'], Htrunc)
         self.r = inDict['r']
@@ -313,19 +314,60 @@ class IRPCS:
         model.setObjective(obj, GRB.MINIMIZE)
         return model
 
-    def exportMPS(self, writePath = os.path.join(os.path.pardir, 'MIPLIB'), fileName = 'SomeInstanceIRPCS'):
+    def exportMPS(self, writePath = os.path.join(os.path.pardir, 'MIPLIB')):
         model = self.createInstance()
-        self.pathMPS = os.path.join(writePath , fileName + '{}_{}_{}'.format(self.V, self.H, self.K) + '.mps')
+        self.pathMPS = os.path.join(writePath , self.name + '.mps')
         model.write( self.pathMPS )
 
-    def genNeighborhoods(self, clusterNbhs = False, k = 20):
+    def genNeighborhoods(self, clusterNbhs = False, k = 20, funNbhs = False):
+        if funNbhs:
+            def fNbhs(varName, depth, param):
+                elements = varName.split('_')
+                if len(elements) < 5:
+                    return False
+                else:
+                    kl = int(elements[3])
+                    tl = int(elements[4])
+
+                    if depth == 2:
+                        return (kl, tl) != param
+                    elif depth == 3:
+                        return tl != param
+                    elif depth == 4:
+                        return kl != param
+                    elif depth == 5:
+                        return tl != param[0] and tl != param[1]
+                    else:
+                        print('Error 23 Nbhds Function!! ')
+                        return 0
+                return False
+
+            outer = {
+                2 : tuple([ (kf, tf) for kf in range(1, self.K + 1) for tf in range(1, self.H + 1) ]),
+                3 : tuple([ tf for tf in range(1, self.H + 1) ]),
+                4 : tuple([ kf for kf in range(1, self.K + 1) ]), 
+                5 : tuple([ (tf1, tf2) for tf1 in range(1, self.H  + 1) for tf2 in range(1, self.H  + 1) if tf1 < tf2 ])
+            }
+
+            klist = ['x_{}_{}_{}_{}'.format( i, j, k, t )
+             for k in range(1, self.K + 1) for t in range(1, self.H  + 1) for i in range(self.V + 1) for j in range(self.V + 1) if i < j]
+            return Neighborhoods(
+                lowest = 2,
+                highest = 5,
+                keysList= klist,
+                randomSet=False,
+                outerNeighborhoods=outer,
+                funNeighborhoods= fNbhs,
+                useFunction=True)
+
         if clusterNbhs:
             return Neighborhoods(
                 lowest = 1,
                 highest = k,
                 keysList= None,
                 randomSet = False,
-                outerNeighborhoods = genClusterNeighborhoods( self.pathMPS, k)
+                outerNeighborhoods = genClusterNeighborhoods( self.pathMPS, k),
+                useFunction= False
             )
 
         outerNhs =  {
@@ -354,7 +396,7 @@ class IRPCS:
             for tf1 in range(1, self.H  + 1) for tf2 in range(1, self.H  + 1) if tf1 < tf2
         }
         }
-        return Neighborhoods(lowest = 2, highest = 5, keysList = None, randomSet = False, outerNeighborhoods = outerNhs)
+        return Neighborhoods(lowest = 2, highest = 5, keysList = None, randomSet = False, outerNeighborhoods = outerNhs, useFunction=False)
 
     def genLazy(self):
         def f1(solValues):
@@ -412,17 +454,17 @@ class IRPCS:
             return False
         return SubtourCheck
 
-    def run(self, path, visualize = False):
+    def run(self):
         self.exportMPS()
 
         modelOut = solver(
-            path = path,
+            path = self.pathMPS,
             addlazy = True,
             funlazy= self.genLazy(),
             importNeighborhoods= True,
-            importedNeighborhoods= self.genNeighborhoods(clusterNbhs= True, k = 35),
+            importedNeighborhoods= self.genNeighborhoods(funNbhs=True),
             funTest= self.genTestFunction(),
-            alpha = 1,
+            alpha = 2,
             callback = 'vmnd',
             verbose = True
         )
@@ -455,10 +497,10 @@ class IRPCS:
 
 if __name__ == '__main__':
 
-    n = 55
+    n = 60
     K = 3
     H = 3
 
-    inst1 = IRPCS(os.path.join('IRPCSInstances', '100nodes.txt'), Vtrunc=n, Htrunc=H, Ktrunc= K)
-    modelSolved = inst1.run(os.path.join(os.path.pardir , 'MIPLIB', 'SomeInstanceIRPCS{}_{}_{}.mps'.format(n, H, K) ), visualize = True)
-    inst1.visualizeRes()
+    inst1 = IRPCS(os.path.join('IRPCSInstances', 'Inst1.txt'), Vtrunc=n, Htrunc=H, Ktrunc= K)
+
+    inst1.run()

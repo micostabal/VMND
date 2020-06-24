@@ -5,7 +5,15 @@ from functools import reduce
 
 class Neighborhoods:
 
-    def __init__(self, lowest = 1, highest = 5, keysList= [], randomSet=True, outerNeighborhoods = None):
+    def __init__(
+        self,
+        lowest = 1,
+        highest = 5,
+        keysList= [],
+        randomSet=True,
+        outerNeighborhoods = None,
+        useFunction = False,
+        funNeighborhoods = None):
         self.keysList = keysList
         self.lowest = lowest
         self.highest = highest
@@ -15,6 +23,10 @@ class Neighborhoods:
         else:
             self.importNeighborhoods(outerNeighborhoods)
         self._depth = lowest
+        self.useFunction = useFunction
+        self.funNeighborhoods = None
+        if useFunction:
+            self.funNeighborhoods = funNeighborhoods
 
     @property
     def depth(self, _depth):
