@@ -33,8 +33,6 @@ def SubtourElimCallback(model, where):
             vals = model.cbGetSolution(model._vars)
             newLazy = model._funLazy(model._vals)
 
-
-
             if len(newLazy) > 0:
                 for cut in newLazy:
                     model.cbLazy( quicksum( model._vars[key] * cut.nonzero[key] for key in cut.nonzero.keys() )
@@ -45,9 +43,6 @@ def VMNDCallback(model, where):
 
     if where == GRB.Callback.MIPSOL:
 
-        """# Incumbent before last Local search is updated.
-        model._IncBeforeLS = model.cbGet(GRB.Callback.MIPSOL_OBJBST)"""
-        
         vals = model.cbGetSolution(model._vars)
         model._vals = vals
 
@@ -71,18 +66,24 @@ def VMNDCallback(model, where):
 
             model._incFound = True
             model._restrTime = True
-            model._BCLastObj = model.cbGet(GRB.Callback.MIPSOL_OBJ)
             model._IncBeforeLS = model.cbGet(GRB.Callback.MIPSOL_OBJ)
             model._vals = model.cbGetSolution(model._vars)
-            model._LSLastObj = model._BCLastObj
 
-            ## Here we generate heuristic local search solutions.
+            #### Local search is performed ####
             localSearch(model)
 
             if model._verbose:
                 print('Starting B&C Search')
             # Time starting new B&C phase
             model._BCLastStart = time.time()
+
+        """bnd = model.cbGet(GRB.Callback.MIPSOL_OBJBND)
+        inc = model.cbGet(GRB.Callback.MIPSOL_OBJBND)
+        gap = abs(bnd - inc) / inc
+        nodes = model.cbGet(GRB.Callback.MIPSOL_NODCNT)
+        if gap <= 0.15 and nodes >= 100:
+            
+            model.setParam('ImproveStartNodes', nodes + 200)"""
     
     # Check B&C time.
     tactBC = (time.time() - model._BCLastStart)
@@ -93,33 +94,15 @@ def VMNDCallback(model, where):
     if where == GRB.Callback.MIPNODE and model._incFound and (not model._restrTime or
      (model._restrTime and tactBC <= totalTimeBC )):
 
-        ## lazy Constraints are added if needed in MIPNODE as well.
-        if model._addLazy and model._funLazy is not None and GRB.Callback.MIPNODE_STATUS == GRB.OPTIMAL:
-            
-            vals = model.cbGetNodeRel(model._vars)
-            model._vals = vals
-            v1 = {}
-            for varname in model._vars.keys():
-                v1[varname] = vals[varname]
-            model._BCVals = v1
-
-            newLazy = model._funLazy(model._vals)
-
-            if len(newLazy) > 0:
-                for cut in newLazy:
-                    print('Lazy constraints being added in MIPNODE')
-                    model.cbAddLazy( quicksum( model._vars[key] * cut.nonzero[key] for key in cut.nonzero.keys() )
-                    , model._senseDict[cut.sense], cut.rhs)
-                    model._BCLazyAdded.append(cut)
-
-        ## Error handilng if: Checks whether the improved and current variables have the same "length"
-        if len(model._LSImprovedDict.keys()) != len(model._vars.keys()):
-            print('No math between vars and LS solutions')
-
         # We set heuristic solution to B&C procedure.
         if model._LSImproved and model._LSImprovedDict is not None:
-            for key in model._vars.keys():
-                model.cbSetSolution(model.getVarByName(key), model._LSImprovedDict[key])
+
+            ## Error handilng if: Checks whether the improved and current variables have the same "length"
+            if len(model._LSImprovedDict.keys()) != len(model._vars.keys()):
+                print('No match between vars and LS solutions')
+            else:
+                for key in model._vars.keys():
+                    model.cbSetSolution(model.getVarByName(key), model._LSImprovedDict[key])
             
     # Time is being restricted and BC phase hasn't reached its timelimit and we have found a MIP Solution.
     if where == GRB.Callback.MIPSOL and model._incFound:
@@ -155,7 +138,7 @@ def VMNDCallback(model, where):
         # Local Search must be performed again.
         if where == GRB.Callback.MIPNODE or where == GRB.Callback.MIPSOL:
 
-            # Local Search is performed.
+            #### Local Search is performed. ####
             localSearch(model)
 
             # B&C is started again.
@@ -172,7 +155,10 @@ def localSearch(model):
         print('Starting Local Search Phase')
     starting_local_search = time.time()
 
+    # Improved is always set to false.
     model._LSImproved = False
+
+    # Model is loaded.
     locModel = loadMPS(model._path)
     locModel.setParam('OutputFlag', 0)
     premodelconstrs = locModel.NumConstrs
@@ -195,6 +181,7 @@ def localSearch(model):
             , model._senseDict[cut.sense], cut.rhs)
         locModel.update()
 
+    # The amount of constraints of the model is measured for checking purposes.
     outerConstrs = locModel.NumConstrs
     if outerConstrs == premodelconstrs and model._verbose:
         pass
@@ -248,19 +235,20 @@ def localSearch(model):
             locModel.optimize()
 
             if locModel.status == GRB.OPTIMAL or locModel.status == GRB.USER_OBJ_LIMIT:
-                if model._LSLastObj is None:
-                    model._LSLastObj = model._BCLastObj
 
                 if model._verbose:
                     print('Local Search Phase has feasible solution')
-                if bestLSObjSoFar > locModel.objVal and model._LSLastObj > locModel.objVal:
+                # if bestLSObjSoFar > locModel.objVal and model._LSLastObj > locModel.objVal:
+                if bestLSObjSoFar > locModel.objVal:
                     model._LSImproved = True
                     model._LSLastObj = locModel.objVal
                     model._BCHeuristicCounter = 0
                     model._LSImprSols = locModel.getAttr('X')
                     model._LSImprovedDict = {}
 
+                    # The best obj so far is updated.
                     bestLSObjSoFar = locModel.objVal
+
                     totalvars = len(model._vars.keys())
                     distinct = 0
                     for key in locModel._vars.keys():
@@ -274,35 +262,31 @@ def localSearch(model):
                         print('--------- Changed {} variables from {}, a  {}% ----------'.format(
                          distinct, totalvars, round(100 * distinct/totalvars, 4)))
             else:
-                print(locModel.status)
+                pass
+                #print(locModel.status)
                     
-            
+            # Viriables fixed in this parameterization are set free.
             for fixedVar in addedFixedVarsKeys:
                 cAct = locModel.getConstrByName(fixedVar)
                 locModel.remove(cAct)
             locModel.update()
 
+            # An Error is shown if constraints don't match.
             finalconstrs = locModel.NumConstrs
             if finalconstrs != outerConstrs and model._verbose:
                 print('--------- CONSTRAINT ERROR 3!! -------------')
 
+        # Neighborhood is increased for the next local search.
         if not model._LSNeighborhoods.canIncNeigh():
             break
         else:
-            model._LSNeighborhoods._depth += 1 
+            model._LSNeighborhoods._depth += 1
         
         if model._LSImproved: break
     
-    if model._verbose:
-        if model._LSImproved:
-            print('--- Objective was reduced ---')
-        else:
-            print('--- Objective was not reduced ---')
-        print('Finished Local Search phase')
-
-    # If the current neighborhood is the last B&C time is restricted.
+    # If the current neighborhood is the last B&C time is restricted, and solutions cannot de set.
     if model._LSNeighborhoods._depth == model._LSNeighborhoods.highest:
-        if model._verbose:
+        if model._verbose and not model._LSImproved:
             print('Local Search phase lead to no improvement.')
         model._restrTime = False
         print('Time is not restricted')
@@ -310,8 +294,16 @@ def localSearch(model):
     # Time is stored inside the model attribute.
     model._LSLastTime = time.time() - starting_local_search
 
+    # If Local Search has not improved, solutions cannot be set in MIPNODE.
+    if not model._LSImproved:
+        model._LSImprovedDict = None
+
     if model._verbose:
-        print('Local Search Phase is finished.')
+        if model._LSImproved:
+            print('--- Objective was reduced ---')
+        else:
+            print('--- Objective was not reduced ---')
+        print('Finished Local Search phase')
 
 def solver(
     path,
@@ -324,7 +316,7 @@ def solver(
     callback = 'vmnd',
     alpha = 2,
     minBCTime = 7,
-    timeTimitSeconds = 300
+    timeLimitSeconds = 300
     ):
     model = Model()
     model = loadMPS(path)
@@ -390,12 +382,14 @@ def solver(
         model.setParam("LazyConstraints", 1)
 
         if callback == 'vmnd':
-            model.setParam('ImproveStartTime', 20)
-            model.setParam('MIPFocus', 1)
-        else:
+            model.setParam('ImproveStartNodes', 100)
             model.setParam('MIPFocus', 0)
-        
-        model.setParam('TimeLimit', timeTimitSeconds)
+        else:
+            model.setParam('ImproveStartNodes', 10)
+            model.setParam('MIPFocus', 0)
+
+        if timeLimitSeconds is not None:
+            model.setParam('TimeLimit', timeLimitSeconds)
         if not verbose:
             model.setParam('OutputFlag', 0)
         if callback == 'vmnd':

@@ -415,6 +415,6 @@ class MVRPD(Instance):
 if __name__ == '__main__':
 
     ## The instance is created.
-    mvrpd1 = MVRPD(os.path.join( 'MVRPDInstances' , 'ajs1n50_h_3.dat' ) )
+    mvrpd1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs1n50_h_3.dat' ) )
     mvrpd1.run()
     

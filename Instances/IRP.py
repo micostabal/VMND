@@ -374,9 +374,9 @@ class IRP(Instance):
 
 
 if __name__ == '__main__':
-    inst1 = IRP('abs4n25_4.dat')
+    inst1 = IRP('abs4n20_4.dat')
     #inst1.run(thisAlpha = 1)
     inst1.run()
-    inst1.visualizeRes()
+    #inst1.visualizeRes()
 
     print('----------------- Program reached End of Execution Succesfully -----------------')
