@@ -319,7 +319,7 @@ class IRPCS:
         self.pathMPS = os.path.join(writePath , self.name + '.mps')
         model.write( self.pathMPS )
 
-    def genNeighborhoods(self, clusterNbhs = False, k = 20, funNbhs = False):
+    def genNeighborhoods(self, varCluster = False, k = 20, funNbhs = False):
         if funNbhs:
             def fNbhs(varName, depth, param):
                 elements = varName.split('_')
@@ -360,7 +360,7 @@ class IRPCS:
                 funNeighborhoods= fNbhs,
                 useFunction=True)
 
-        if clusterNbhs:
+        if varCluster:
             return Neighborhoods(
                 lowest = 1,
                 highest = k,
@@ -462,7 +462,7 @@ class IRPCS:
             addlazy = True,
             funlazy= self.genLazy(),
             importNeighborhoods= True,
-            importedNeighborhoods= self.genNeighborhoods(funNbhs=True),
+            importedNeighborhoods= self.genNeighborhoods(varCluster=True),
             funTest= self.genTestFunction(),
             alpha = 2,
             callback = 'vmnd',

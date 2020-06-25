@@ -193,9 +193,8 @@ class IRP(Instance):
         self.pathMPS = os.path.join(writePath, writeName + '.mps' )
         model.write(self.pathMPS)
         
-    def genNeighborhoods(self, clusterNbhs = False, nCltrs = 30, funNbhs = False):
+    def genNeighborhoods(self, varCluster = False, nCltrs = 30, funNbhs = False):
         if funNbhs:
-            
             def fNbhs(varName, depth, param):
                 elements = varName.split('_')
                 if len(elements) < 5:
@@ -235,7 +234,7 @@ class IRP(Instance):
                 funNeighborhoods= fNbhs,
                 useFunction=True)
 
-        if clusterNbhs:
+        if varCluster:
             return Neighborhoods(
                 lowest = 1,
                 highest = nCltrs,
@@ -340,7 +339,7 @@ class IRP(Instance):
             addlazy = True,
             funlazy= self.genLazy(),
             importNeighborhoods= True,
-            importedNeighborhoods= self.genNeighborhoods(clusterNbhs=False, nCltrs = 10, funNbhs = True),
+            importedNeighborhoods= self.genNeighborhoods(varCluster=False, nCltrs = 10, funNbhs = True),
             funTest= self.genTestFunction(),
             alpha = thisAlpha,
             minBCTime = 0,

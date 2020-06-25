@@ -248,8 +248,8 @@ class MVRPD(Instance):
         self.pathMPS = os.path.join(writePath , self.name + '.mps')
         model.write( self.pathMPS )
 
-    def genNeighborhoods(self, k = 25, Kvicinities = False, funNbhs = False, genFromCluster = False):
-        if genFromCluster:
+    def genNeighborhoods(self, k = 25, Kvicinities = False, funNbhs = False, varCluster = False):
+        if varCluster:
             numClu = int(self.H * self.V / 10)
             klist = ['x_{}_{}_{}'.format(i, j, t) for i in range(self.V + 1) for j in range(self.V + 1) for t in range(1, self.H + 1) ]
             return Neighborhoods(
@@ -262,7 +262,6 @@ class MVRPD(Instance):
                 funNeighborhoods=None
                 )
         if funNbhs:
-
             X = self.positions
             nbrs = NearestNeighbors(n_neighbors=k, algorithm='ball_tree').fit(X)
             indices = nbrs.kneighbors(X)[1]

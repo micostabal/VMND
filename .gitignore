@@ -1,5 +1,5 @@
 # Directories #
-MIPLIB
+MIPLIB/*mps
 out.lp
 gurobi.log
 VMNDresults.txt
