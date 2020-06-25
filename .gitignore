@@ -10,3 +10,4 @@ gurobi.log
 Intstances/VRP\ Instances
 Intstances/Instances\ IRPCS
 Intstances/__pycache__
+!binkar10_1.mps
