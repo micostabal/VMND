@@ -1,23 +1,12 @@
 # Directories #
-MIPLIB/*mps
+*mps
+*txt
+*dat
+*oisrc
+*plc
+*vrp
 out.lp
 gurobi.log
-VMNDresults.txt
 Intstances/VRP\ Instances
 Intstances/Instances\ IRPCS
-Intstances/DATFiles
-__pycache__
-100nodes.txt
-60nodes.txt
-Instances/Instances\ IRPCS/Inst1.txt
-Inst2.txt
-Inst3.txt
-Inst4.txt
-Inst5.txt
-Instances/Instances/MVRPD/
-Instances/Instances/VRP/
-Instances/Instances/MVRPD
-Instances/IRPCSInstances
-Instances/DATFiles
-Instances/VRPInstances
 Intstances/__pycache__
