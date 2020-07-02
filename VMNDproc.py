@@ -76,21 +76,13 @@ def VMNDCallback(model, where):
                 print('Starting B&C Search')
             # Time starting new B&C phase
             model._BCLastStart = time.time()
-
-        """bnd = model.cbGet(GRB.Callback.MIPSOL_OBJBND)
-        inc = model.cbGet(GRB.Callback.MIPSOL_OBJBND)
-        gap = abs(bnd - inc) / inc
-        nodes = model.cbGet(GRB.Callback.MIPSOL_NODCNT)
-        if gap <= 0.15 and nodes >= 100:
-            
-            model.setParam('ImproveStartNodes', nodes + 200)"""
     
     # Check B&C time.
     tactBC = (time.time() - model._BCLastStart)
     # The time in B&C must be at least the minimum provided by the user (minBCTime) and alpha times the last LS phase.
     totalTimeBC = max(model._alpha * model._LSLastTime, model._minBCTime )
 
-    # Time is being restricted and BC phase hasn't reached its timelimit and we are now in a MIP Node.
+    # A MIP NODE is being explored.
     if where == GRB.Callback.MIPNODE and model._incFound and (not model._restrTime or
      (model._restrTime and tactBC <= totalTimeBC )):
 
@@ -104,7 +96,7 @@ def VMNDCallback(model, where):
                 for key in model._vars.keys():
                     model.cbSetSolution(model.getVarByName(key), model._LSImprovedDict[key])
             
-    # Time is being restricted and BC phase hasn't reached its timelimit and we have found a MIP Solution.
+    # An integer solution has been found.
     if where == GRB.Callback.MIPSOL and model._incFound:
         
         # We check whether a new incumbent has been found.
@@ -126,7 +118,7 @@ def VMNDCallback(model, where):
             if model._LSNeighborhoods._depth > model._LSNeighborhoods.lowest:
                 model._LSNeighborhoods.resetDepth()
 
-    # We are now in an arbitrary place in the search tree and B&C timelimit has already ocurred.
+    # Timelimit has already ocurred.
     if model._incFound and model._restrTime and tactBC > totalTimeBC and ( where == GRB.Callback.MIPNODE or where == GRB.Callback.MIPSOL ):
 
         # Incumbent before last Local search is updated. In MIPNODE or MIPSOL

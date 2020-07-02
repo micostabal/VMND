@@ -12,7 +12,7 @@ from Cuts import Cut
 import networkx as nx
 import matplotlib.pyplot as plt
 from Instance import Instance
-from Functions import keyOpTSP
+from Functions import keyOpTSP, genClusterNeighborhoods
 
 class TSP(Instance):
 
@@ -53,7 +53,29 @@ class TSP(Instance):
         self.pathMPS = os.path.join( os.path.join( writePath,  self.name ))
         model.write(self.pathMPS)
 
-    def genNeighborhoods(self, setRandom = False):
+    def genNeighborhoods(self, setRandom = False, varCluster = False):
+        if varCluster:
+            numClu = int(self.n / 20) + 1
+
+            outerNbhs = { i : (0,) for i in range(1, numClu + 1) }
+
+            labelsDict = genClusterNeighborhoods( self.pathMPS, numClu, fNbhs = True, varFilter=lambda x: x[0] == 'x')
+            def fClusterNbhs(varName, depth, param):
+                return labelsDict[varName] != depth - 1
+
+            klist = ['x_{}_{}'.format(i, j) for i in range(self.n) for j in range(self.n) if i < j ]
+
+            return Neighborhoods(
+                lowest = 1,
+                highest = numClu,
+                keysList= klist,
+                randomSet=False,
+                outerNeighborhoods=outerNbhs,
+                useFunction=True,
+                funNeighborhoods=fClusterNbhs
+                )
+
+
         if not setRandom:
             outer = {}
             groups = [5]
@@ -131,7 +153,7 @@ class TSP(Instance):
                         addlazy= True,
                         funlazy= self.genLazy(),
                         importNeighborhoods= True,
-                        importedNeighborhoods= self.genNeighborhoods(),
+                        importedNeighborhoods= self.genNeighborhoods( varCluster=True ),
                         funTest = self.genTestFunction(),
                         alpha = 2,
                         callback = 'vmnd',

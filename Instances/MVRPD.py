@@ -250,17 +250,28 @@ class MVRPD(Instance):
 
     def genNeighborhoods(self, k = 25, Kvicinities = False, funNbhs = False, varCluster = False):
         if varCluster:
-            numClu = int(self.H * self.V / 10)
-            klist = ['x_{}_{}_{}'.format(i, j, t) for i in range(self.V + 1) for j in range(self.V + 1) for t in range(1, self.H + 1) ]
+
+            numClu = int(self.H * self.V / 7)
+
+            outerNbhs = { i : (0,) for i in range(1, numClu + 1) }
+
+
+            labelsDict = genClusterNeighborhoods( self.pathMPS, numClu, fNbhs = True, varFilter=lambda x: x[0] == 'x')
+            def fClusterNbhs(varName, depth, param):
+                return labelsDict[varName] != depth - 1          
+
+            klist = ['x_{}_{}_{}'.format(i, j, t) for i in range(self.V + 1) for j in range(self.V + 1) for t in range(1, self.H + 1) if i != j ]
+
             return Neighborhoods(
                 lowest = 1,
                 highest = numClu,
-                keysList= None,
+                keysList= klist,
                 randomSet=False,
-                outerNeighborhoods=genClusterNeighborhoods(self.pathMPS, numClu),
-                useFunction=False,
-                funNeighborhoods=None
+                outerNeighborhoods=outerNbhs,
+                useFunction=True,
+                funNeighborhoods=fClusterNbhs
                 )
+        
         if funNbhs:
             X = self.positions
             nbrs = NearestNeighbors(n_neighbors=k, algorithm='ball_tree').fit(X)
@@ -377,12 +388,12 @@ class MVRPD(Instance):
             addlazy = False,
             funlazy= None,
             importNeighborhoods= True,
-            importedNeighborhoods= self.genNeighborhoods(Kvicinities=True),
+            importedNeighborhoods= self.genNeighborhoods(varCluster=True),
             funTest= self.genTestFunction(),
             alpha = 1,
             callback = 'vmnd',
             verbose = True,
-            minBCTime = 0
+            minBCTime = 2
         )
         self.resultVars = {keyOpMVRPD(var.varName) : var.x for var in modelOut.getVars() if var.x > 0 }
         return modelOut
@@ -414,6 +425,6 @@ class MVRPD(Instance):
 if __name__ == '__main__':
 
     ## The instance is created.
-    mvrpd1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs1n50_h_3.dat' ) )
+    mvrpd1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs1n25_h_3.dat' ) )
     mvrpd1.run()
     

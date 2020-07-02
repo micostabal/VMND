@@ -10,7 +10,7 @@ from Cuts import Cut
 from ConComp import getSubsets 
 from VMNDproc import solver
 from Neighborhood import Neighborhoods
-from Functions import keyOpVRP
+from Functions import keyOpVRP, genClusterNeighborhoods
 from Instance import Instance
 
 def loadVRP(fileLines):
@@ -132,7 +132,65 @@ class VRP(Instance):
         self.pathMPS = os.path.join( writePath , self.name + '.mps' )
         m.write(self.pathMPS)
 
-    def genNeighborhoods(self):
+    def genNeighborhoods(self, varCluster = False, funNbhs = False):
+        if varCluster:
+            numClu = int(self.trucks * self.retailers / 7)
+
+            outerNbhs = { i : (0,) for i in range(1, numClu + 1) }
+
+
+            labelsDict = genClusterNeighborhoods( self.pathMPS, numClu, fNbhs = True, varFilter=lambda x: x[0] == 'y')
+            def fClusterNbhs(varName, depth, param):
+                return labelsDict[varName] != depth - 1          
+
+            klist = ['y_{}_{}_{}'.format(i, j, k)
+             for i in range(self.retailers + 1) for j in range(self.retailers + 1) for k in range(1, self.trucks + 1) if i < j ]
+
+            return Neighborhoods(
+                lowest = 1,
+                highest = numClu,
+                keysList= klist,
+                randomSet=False,
+                outerNeighborhoods=outerNbhs,
+                useFunction=True,
+                funNeighborhoods=fClusterNbhs
+                )
+        if funNbhs:
+
+            def fNbhs(varName, depth, param):
+                elements = varName.split('_')
+                if len(elements) < 4:
+                    return False
+                else:
+                    kl = int(elements[3])
+                    il = int(elements[1])
+                    jl = int(elements[2])
+
+                    if depth == 1:
+                        return kl != param
+                    elif depth == 2:
+                        return kl != param[0] and kl != param[1]
+                    else:
+                        print('Error 23 Nbhds Function!! ')
+                        return 0
+                return False
+
+            outer = {
+                1 : tuple([ tf for tf in range(1, self.trucks + 1) ]),
+                2 : tuple([ (tr1, tr2) for tr1 in range(1, self.trucks + 1) for tr2 in range(1, self.trucks + 1) if tr1 < tr2 ])
+            }
+
+            klist = ['y_{}_{}_{}'.format( i, j, k )
+             for k in range(1, self.trucks  + 1) for i in range(self.retailers + 1) for j in range(self.retailers + 1) if i < j]
+            return Neighborhoods(
+                lowest = 1,
+                highest = 2,
+                keysList= klist,
+                randomSet=False,
+                outerNeighborhoods=outer,
+                funNeighborhoods= fNbhs,
+                useFunction=True)
+
         outerN = {
             1: {
                 truck : [ 'y_{}_{}_{}'.format(i, j, k) for k in range(1, self.trucks + 1)
@@ -210,9 +268,9 @@ class VRP(Instance):
             addlazy= True,
             funlazy= self.genLazy(),
             importNeighborhoods= True,
-            importedNeighborhoods= self.genNeighborhoods(),
+            importedNeighborhoods= self.genNeighborhoods(funNbhs=True),
             funTest= None,
-            alpha = 2,
+            alpha = 1,
             callback = 'vmnd',
             verbose = True
         )
@@ -224,5 +282,5 @@ class VRP(Instance):
 
 
 if __name__ == '__main__':
-    vrp1 = VRP(os.path.join('VRP Instances', 'A-n33-k5.vrp'))
+    vrp1 = VRP(os.path.join('VRPInstances', 'A-n33-k5.vrp'))
     vrp1.run()

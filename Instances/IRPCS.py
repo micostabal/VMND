@@ -361,13 +361,27 @@ class IRPCS:
                 useFunction=True)
 
         if varCluster:
+
+            amountClusters = self.H * self.K
+
+            outerNbhs = { i : (0,) for i in range(1, amountClusters + 1) }
+
+
+            labelsDict = genClusterNeighborhoods( self.pathMPS, amountClusters, fNbhs = True, varFilter=lambda x: x[0] == 'x')
+            def fClusterNbhs(varName, depth, param):
+                return labelsDict[varName] == depth
+
+            klist = ['x_{}_{}_{}_{}'.format( i, j, k, t )
+             for k in range(1, self.K + 1) for t in range(1, self.H  + 1) for i in range(self.V + 1) for j in range(self.V + 1) if i < j]
+
             return Neighborhoods(
                 lowest = 1,
-                highest = k,
-                keysList= None,
+                highest = amountClusters,
+                keysList= klist,
                 randomSet = False,
-                outerNeighborhoods = genClusterNeighborhoods( self.pathMPS, k),
-                useFunction= False
+                outerNeighborhoods = outerNbhs,
+                useFunction= True,
+                funNeighborhoods= fClusterNbhs
             )
 
         outerNhs =  {
@@ -497,10 +511,11 @@ class IRPCS:
 
 if __name__ == '__main__':
 
-    n = 60
+    n = 25
     K = 3
-    H = 3
+    H = 5
 
     inst1 = IRPCS(os.path.join('IRPCSInstances', 'Inst1.txt'), Vtrunc=n, Htrunc=H, Ktrunc= K)
-
     inst1.run()
+    """inst1.exportMPS()
+    inst1.genNeighborhoods(varCluster=True)"""

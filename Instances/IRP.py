@@ -235,13 +235,26 @@ class IRP(Instance):
                 useFunction=True)
 
         if varCluster:
+
+            amountClusters = self.H * self.K
+
+            outerNbhs = { i : (0,) for i in range(1, amountClusters + 1) }
+
+            labelsDict = genClusterNeighborhoods( self.pathMPS, amountClusters, fNbhs = True, varFilter=lambda x: x[0] == 'y')
+            def fClusterNbhs(varName, depth, param):
+                return labelsDict[varName] == depth
+
+            klist = ['y_{}_{}_{}_{}'.format( i, j, k, t )
+             for k in range(1, self.K + 1) for t in range(1, self.H  + 1) for i in range(self.n + 1) for j in range(self.n + 1) if i < j]
+
             return Neighborhoods(
                 lowest = 1,
-                highest = nCltrs,
-                keysList= None,
+                highest = amountClusters,
+                keysList= klist,
                 randomSet = False,
-                outerNeighborhoods = genClusterNeighborhoods( self.pathMPS, nClusters = nCltrs ),
-                useFunction=False
+                outerNeighborhoods = outerNbhs,
+                useFunction= True,
+                funNeighborhoods= fClusterNbhs
             )
 
         outerNhs =  {
@@ -339,7 +352,7 @@ class IRP(Instance):
             addlazy = True,
             funlazy= self.genLazy(),
             importNeighborhoods= True,
-            importedNeighborhoods= self.genNeighborhoods(varCluster=False, nCltrs = 10, funNbhs = True),
+            importedNeighborhoods= self.genNeighborhoods(varCluster=True, nCltrs = 10, funNbhs = False),
             funTest= self.genTestFunction(),
             alpha = thisAlpha,
             minBCTime = 0,
@@ -373,7 +386,7 @@ class IRP(Instance):
 
 
 if __name__ == '__main__':
-    inst1 = IRP('abs4n20_4.dat')
+    inst1 = IRP('abs1n100_4.dat')
     #inst1.run(thisAlpha = 1)
     inst1.run()
     #inst1.visualizeRes()

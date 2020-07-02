@@ -1,11 +1,14 @@
 from itertools import chain, combinations
 import pandas as pd
+import time
 import matplotlib.pyplot as plt
 from gurobipy import *
 import numpy as np
+import networkx as nx
 from sklearn.cluster import KMeans,SpectralClustering
 from scipy.sparse import csr_matrix
 import os
+import sys
 
 def powerset(seq):
     """
@@ -91,6 +94,19 @@ def get_matrix_coos(m):
         for coeff, col_idx in get_expr_coos(m.getRow(constr), var_indices):
             yield row_idx, col_idx, coeff
 
+def get_expr_coos_new(expr, var_indices):
+    for i in range(expr.size()):
+        dvar = expr.getVar(i)
+        yield var_indices[dvar], dvar.VarName
+
+def get_matrix_coos_new(m):
+    dvars = m.getVars()
+    constrs = m.getConstrs()
+    var_indices = {v: i for i, v in enumerate(dvars)}
+    for row_idx, constr in enumerate(constrs):
+        for col_idx, name in get_expr_coos_new(m.getRow(constr), var_indices):
+            yield row_idx, col_idx, name
+
 def VisualizeNonZeros(path = os.path.join("MIPLIB", "SomeInstanceIRPCS25_7_3.mps" ) ):
     m = read(path)
     nzs = pd.DataFrame(get_matrix_coos(m), columns=['row_idx', 'col_idx', 'coeff'])
@@ -99,7 +115,6 @@ def VisualizeNonZeros(path = os.path.join("MIPLIB", "SomeInstanceIRPCS25_7_3.mps
     varsInRow = []
 
     for index, row in nzs.iterrows():
-        
         if row['row_idx'] == actRow:
             varsInRow.append(row['col_idx'])
 
@@ -113,70 +128,130 @@ def VisualizeNonZeros(path = os.path.join("MIPLIB", "SomeInstanceIRPCS25_7_3.mps
             marker='.', lw=0)
     plt.show()
 
-def genClusterNeighborhoods(path = os.path.join("MIPLIB", "SomeInstanceIRPCS25_7_3.mps" ), nClusters = 18, verbose = True):
+def genAffinityMatrix(path = os.path.join("MIPLIB", "SomeInstanceIRPCS15_8_3.mps" ), varFilter = lambda x : x[0] == 'x', verbose = False):
+    starting_time = time.time()
     m = read(path)
-    nzs = pd.DataFrame(get_matrix_coos(m), columns=['row_idx', 'col_idx', 'coeff'])
+    nzs = pd.DataFrame(get_matrix_coos_new(m), columns=['row_idx', 'col_idx', 'name'])
 
-    edges = {}
+    # An undirected affinity graph is created.
+    graph = nx.Graph()
+
     actRow = 0
     varsInRow = []
-    maxIndex = 0
+
 
     for index, row in nzs.iterrows():
-        if row['row_idx'] == actRow:
-            varsInRow.append(row['col_idx'])
-        else:
-            for x1 in varsInRow:
-                for x2 in varsInRow:
-                    if int(x1) < int(x2):
-                        if (int(x1), int(x2)) in edges.keys():
-                            edges[( int(x1) , int(x2) )] += 1
-                            edges[( int(x2) , int(x1) )] += 1
-                        else:
-                            edges[( int(x1) , int(x2) )] = 1
-                            edges[( int(x2) , int(x1) )] = 1
 
-            actRow = row.row_idx
+        if int(row.row_idx) == actRow and varFilter(row['name']):
+                varsInRow.append(row['name'])
+        elif int(row.row_idx) != actRow and varFilter(row['name']):
+
+            # We update the edge dictionary:
+            if len(varsInRow) > 1:
+                for n1 in varsInRow:
+                    for n2 in varsInRow:
+                        if n1 < n2:
+                            if not graph.has_edge(n1, n2):
+                                graph.add_edge(n1, n2, weight = 1)
+                            else:
+                                graph[n1][n2]['weight'] += 1
+            
+            # The row and varaibles list parameters are set back to 0 and empty respectively.
+            actRow = int(row.row_idx)
             varsInRow = []
-            varsInRow.append(row.col_idx)
+            if verbose:
+                print('Completed {} of total rows.'.format( round( index / len(nzs) , 3) ) )
+
+            # If is not filtered, we add the variable name to the list.
+            if varFilter(row['name']):
+                varsInRow.append(row['name'])
     
-    rowArray = []
-    colArray = []
-    dataArray= []
-    for edge in edges.keys():
-        rowArray.append(int(edge[0]))
-        colArray.append(int(edge[1]))
-        dataArray.append(int(edges[edge]))
-    rowArray = np.array(rowArray)
-    colArray = np.array(colArray)
-    dataArray = np.array(dataArray)
+    if verbose:
+        print('------ Affinity Matrix successfully stored. Elapsed : {} ------'.format( round(time.time() - starting_time , 3) ) )
+    return graph
 
-    print('------ Affinity Matrix successfully stored ------')
-    dim = max(max(rowArray), max(colArray))
+def genClusterNeighborhoods(
+        path = os.path.join("MIPLIB", "SomeInstanceIRPCS20_6_3.mps" ),
+        nClusters = 18,
+        verbose = True,
+        fNbhs = False,
+        varFilter = lambda y : y[0] == 'x'):
 
-    ar1 = csr_matrix((dataArray, (rowArray, colArray)), shape=( dim + 1, dim + 1 ))
-    clustering = SpectralClustering(
-        n_clusters=nClusters,
-        assign_labels="discretize",
+    graph = genAffinityMatrix(path, varFilter, verbose = verbose)
+
+    adj_matrix = nx.to_numpy_matrix(graph)
+
+    clusters = SpectralClustering(
         affinity = 'precomputed',
-        random_state=0).fit(ar1)
+        assign_labels = "discretize",
+        random_state = 0,
+        n_clusters = nClusters).fit_predict(adj_matrix)
 
-    labels = clustering.labels_
+    node_list = list(graph.nodes)
 
-    print('------ Cluster labels computed ------')
-    totalVars = [i.VarName for i in m.getVars() ]
+    dLabels = { node_list[i] : clusters[i] for i in range(len(clusters))}
+    if verbose:
+        print('------ Cluster labels computed ------')
 
-    outer = {}
-    for i in range(nClusters):
+    if not fNbhs:
+        outer = {}
+        for i in range(nClusters):
+            outer[i + 1] = {
+                0 : tuple(filter( lambda x : dLabels[x] != i , node_list ))
+            }
+            #print("------ A {}% of neighborhoods stored ------".format( round(100 * i / nClusters, 3) ) )
+        
+        return outer
 
-        forbidden = [ m.getVars()[j].VarName for j in range(len(m.getVars())) if labels[j] == i ]
+    else:
+        return dLabels
 
-        outer[i + 1] = {
-            0 : [ var for var in totalVars if var not in forbidden ]
-        }
-        print("------ A {}% of neighborhoods stored ------".format( round(100 * i / nClusters, 3) ) )
-    
-    return outer
+def mps_reader(file_name = os.path.join( 'MIPLIB' , 'abs1n5_1.mps' )):
+    for row in open(file_name, "r"):
+        yield row
+
 
 if __name__ == '__main__':
-    genClusterNeighborhoods()
+    #genAffinityMatrix()
+    #gc1 = genClusterNeighborhoods( path = os.path.join( 'MIPLIB' , 'abs1n5_1.mps' ), fNbhs = False)
+
+    started = False
+    finished = False
+    varFilter = lambda x: x[0] == 'x'
+    rvar = {}
+    
+    for i in mps_reader(file_name = os.path.join( 'MIPLIB' , 'SomeInstanceIRPCS60_12_3.mps' )):
+        row = i.strip('\n')
+        if row == 'COLUMNS':
+            print('column detected')
+            started = True
+            continue
+        elif row == 'RHS':
+            print('end of rows')
+            finished = True
+        
+        if started and not finished and "'MARKER'" not in row:
+            tupleRow = tuple( filter(lambda x : x != '', i.strip('\n').strip(' ').split(' ') ) )
+            varName = tupleRow[0]
+            constrName = tupleRow[1]
+            if varFilter(varName):
+                if constrName in rvar.keys():
+                    rvar[constrName].append(varName)
+                else:
+                    rvar[constrName] = [varName]
+    
+    print(sys.getsizeof(rvar))
+    keys = tuple(rvar.keys())
+    edges = {}
+    for constr in keys:
+        for v1 in rvar[constr]:
+            for v2 in rvar[constr]:
+                if v1 < v2:
+                    if (v1, v2) in edges.keys():
+                        edges[(v1, v2)] += 1
+                    else:
+                        edges[(v1, v2)] = 1
+        del rvar[constr]
+
+    print(sys.getsizeof(edges))
+

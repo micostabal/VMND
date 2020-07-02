@@ -138,9 +138,29 @@ class OISRC(Instance):
         self.pathMPS = os.path.join(writePath, self.name + '.mps' )
         model.write(self.pathMPS)
 
-    def genNeighborhoods(self, clusters = 20):
-        outer = genClusterNeighborhoods(self.pathMPS, clusters)
-        return Neighborhoods(lowest = 1, highest = clusters, keysList = None, randomSet = False, outerNeighborhoods = outer )
+    def genNeighborhoods(self, verbose = False):
+        
+        numClu = min(int(self.m * self.n / 10), 20)
+        print(numClu)
+
+        labelsDict = genClusterNeighborhoods( self.pathMPS, numClu, fNbhs = True, varFilter=lambda x: x[0] == 'x')
+        def fClusterNbhs(varName, depth, param):
+            return labelsDict[varName] != depth - 1          
+
+        
+        outerNbhs = { i : (0,) for i in range(1, numClu + 1) }
+
+        klist = ['x_{}_{}'.format(i, j) for i in range(self.m) for j in range(self.n) ]
+
+        return Neighborhoods(
+            lowest = 1,
+            highest = numClu,
+            keysList= klist,
+            randomSet=False,
+            outerNeighborhoods=outerNbhs,
+            useFunction=True,
+            funNeighborhoods=fClusterNbhs
+            )
 
     def genLazy(self): pass
 
@@ -159,7 +179,7 @@ class OISRC(Instance):
             importNeighborhoods= True, 
             importedNeighborhoods= nbhs,
             funTest= None, 
-            callback = 'pure',
+            callback = 'vmnd',
             alpha = 1,
             minBCTime= 0
         )
@@ -172,6 +192,6 @@ class OISRC(Instance):
 
 
 if __name__ == '__main__':
-    si1 = OISRC(os.path.join('OISRCInstances', 'instance_4_2_100_1.oisrc'))
+    si1 = OISRC(os.path.join('OISRCInstances', 'instance_15_2_170_1.oisrc'))
 
     si1.run()
