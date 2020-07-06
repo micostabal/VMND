@@ -1,7 +1,9 @@
 from random import sample, randint, sample
 from Others import loadMPS
 from functools import reduce
-
+from gurobipy import read, Model
+from Functions import genClusterNeighborhoods
+import os
 
 class Neighborhoods:
 
@@ -22,6 +24,7 @@ class Neighborhoods:
             self.createRandomNeighborhoods()
         else:
             self.importNeighborhoods(outerNeighborhoods)
+        
         self._depth = lowest
         self.useFunction = useFunction
         self.funNeighborhoods = None
@@ -134,7 +137,7 @@ def genIRPneigh(n, H, K, stVarName = 'y'):
         }
     }
 
-def importNeighborhoods(fileName = 'Neighborhoods//IRP10.txt'):
+def importNeighborhoods(fileName ):
     file = open(fileName, 'r')
     #lines = list(map(lambda x: x.rstrip('\n'), file.readlines()))
     
@@ -156,8 +159,36 @@ def importNeighborhoods(fileName = 'Neighborhoods//IRP10.txt'):
     file.close()
     return nhOutput
 
+def varClusterFromMPS(
+    path = os.path.join('MIPLIB', 'binkar10_1.mps'),
+    numClu= 10,
+    varFilter = lambda x : x[0] == 'x'):
+    m = read(path)
+    if not varFilter:
+        klist = list( map(lambda var: var.VarName, m.getVars() ) )
+    else:
+        klist = list( filter( varFilter, list( map(lambda var: var.VarName, m.getVars() ) ) ) )
+    
+    outerNbhs = { i : (0, ) for i in range(1, numClu + 1) }
+
+    labels = genClusterNeighborhoods(
+        path = path,
+        nClusters = numClu,
+        verbose = False,
+        fNbhs = True,
+        varFilter = varFilter)
+    
+    def funNbhs(varName, depth, param):
+        return depth != 1 + labels[varName]
+
+    return Neighborhoods(
+        lowest = 1,
+        highest = numClu,
+        keysList = klist,
+        outerNeighborhoods = outerNbhs,
+        useFunction = True,
+        randomSet = False,
+        funNeighborhoods= funNbhs)
+
 if __name__ == '__main__':
-    #m = loadMPS('MIPLIB//binkar10_1.mps')
-    #ns1 = Neighborhoods(list(m._vars.keys()), randomSet=True)
-    #nsIRP10.exportNeighborhood('IRP10')
-    print(importNeighborhoods().neighborhoods[4]['2'])
+    nbhs1 = varClusterFromMPS(varFilter = lambda x : int(x.lstrip('C')) <= 2000 and int(x.lstrip('C')) >= 1990 )

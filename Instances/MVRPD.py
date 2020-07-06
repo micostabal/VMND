@@ -255,7 +255,6 @@ class MVRPD(Instance):
 
             outerNbhs = { i : (0,) for i in range(1, numClu + 1) }
 
-
             labelsDict = genClusterNeighborhoods( self.pathMPS, numClu, fNbhs = True, varFilter=lambda x: x[0] == 'x')
             def fClusterNbhs(varName, depth, param):
                 return labelsDict[varName] != depth - 1          
@@ -274,7 +273,8 @@ class MVRPD(Instance):
         
         if funNbhs:
             X = self.positions
-            nbrs = NearestNeighbors(n_neighbors=k, algorithm='ball_tree').fit(X)
+            # In larrain et al 2019 the neighbors parameter is set to 20.
+            nbrs = NearestNeighbors(n_neighbors=20, algorithm='ball_tree').fit(X)
             indices = nbrs.kneighbors(X)[1]
             
             def fNbhs(varName, depth, param):
@@ -293,7 +293,7 @@ class MVRPD(Instance):
                     else:
                         print('Error 23 Nbhds Function!! ')
                         return 0
-                return False
+                return True
 
             outer = {
                 1 : tuple([ tf for tf in range(1, self.H + 1) ]),
@@ -388,7 +388,7 @@ class MVRPD(Instance):
             addlazy = False,
             funlazy= None,
             importNeighborhoods= True,
-            importedNeighborhoods= self.genNeighborhoods(varCluster=True),
+            importedNeighborhoods= self.genNeighborhoods(funNbhs=True),
             funTest= self.genTestFunction(),
             alpha = 1,
             callback = 'vmnd',
@@ -425,6 +425,6 @@ class MVRPD(Instance):
 if __name__ == '__main__':
 
     ## The instance is created.
-    mvrpd1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs1n25_h_3.dat' ) )
+    mvrpd1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs1n25_h_6.dat' ) )
     mvrpd1.run()
     

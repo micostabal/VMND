@@ -128,7 +128,10 @@ def VisualizeNonZeros(path = os.path.join("MIPLIB", "SomeInstanceIRPCS25_7_3.mps
             marker='.', lw=0)
     plt.show()
 
-def genAffinityMatrix(path = os.path.join("MIPLIB", "SomeInstanceIRPCS15_8_3.mps" ), varFilter = lambda x : x[0] == 'x', verbose = False):
+def genAffinityMatrix(
+        path = os.path.join("MIPLIB", "SomeInstanceIRPCS15_8_3.mps" ),
+        varFilter = lambda x : x[0] == 'x',
+        verbose = False ):
     starting_time = time.time()
     m = read(path)
     nzs = pd.DataFrame(get_matrix_coos_new(m), columns=['row_idx', 'col_idx', 'name'])
@@ -139,11 +142,13 @@ def genAffinityMatrix(path = os.path.join("MIPLIB", "SomeInstanceIRPCS15_8_3.mps
     actRow = 0
     varsInRow = []
 
+    if varFilter == None:
+        varFilter = lambda x : True
 
     for index, row in nzs.iterrows():
 
         if int(row.row_idx) == actRow and varFilter(row['name']):
-                varsInRow.append(row['name'])
+            varsInRow.append(row['name'])
         elif int(row.row_idx) != actRow and varFilter(row['name']):
 
             # We update the edge dictionary:
@@ -190,6 +195,23 @@ def genClusterNeighborhoods(
     node_list = list(graph.nodes)
 
     dLabels = { node_list[i] : clusters[i] for i in range(len(clusters))}
+    m = read(path)
+
+    if varFilter == None:
+        keyVars = list(  map( lambda var: var.VarName, list(m.getVars()) ) )
+    else:
+        keyVars = list( filter ( varFilter , map( lambda var: var.VarName, list(m.getVars() )  ) ) )
+
+    
+    incomplete = False
+    for ind in range(len(keyVars)):
+        if keyVars[ind] not in node_list:
+            incomplete = True
+            dLabels[keyVars[ind]] = ind % nClusters
+
+    if verbose:
+        print('------ The key variable choice was incomplete ------')    
+
     if verbose:
         print('------ Cluster labels computed ------')
 

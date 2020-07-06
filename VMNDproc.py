@@ -2,7 +2,7 @@ from gurobipy import *
 import numpy as np
 from math import trunc
 from ConComp import getSubsets
-from Neighborhood import Neighborhoods, genIRPneighborhoods, genIRPneigh
+from Neighborhood import Neighborhoods, genIRPneighborhoods, genIRPneigh, varClusterFromMPS
 from Others import loadMPS
 from Functions import transformKey, genClusterNeighborhoods
 from Cuts import genSubtourLazy, Cut, getCheckSubTour
@@ -461,6 +461,20 @@ def compareGaps(path):
 
 
 if __name__ == '__main__':
-    #runSeveral('vmnd')
-    model = read(os.path.join('MIPLIB', 'binkar10_1.mps'))
+    path = os.path.join('MIPLIB', 'binkar10_1.mps')
+
+    nbhs = varClusterFromMPS(path, numClu = 10, varFilter = None)
+    solver(
+        path,
+        verbose = True,
+        addlazy= False, 
+        funlazy = None,
+        importNeighborhoods=True,
+        importedNeighborhoods= nbhs,
+        funTest= None,
+        callback = 'vmnd',
+        alpha = 1,
+        minBCTime= 5,
+        timeLimitSeconds= None
+    )
     
