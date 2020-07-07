@@ -7,7 +7,7 @@ from gurobipy import *
 import networkx as nx
 import matplotlib.pyplot as plt
 from Cuts import Cut
-from ConComp import getSubsets 
+from ConComp import getSubsets
 from VMNDproc import solver
 from Neighborhood import Neighborhoods
 from Functions import keyOpVRP, genClusterNeighborhoods
@@ -41,6 +41,7 @@ class VRP(Instance):
         fileLines = list(map(lambda x: x.strip('\n'), open( path , 'r').readlines()))
         instDict = loadVRP(fileLines)
         self.path = path
+        self.resultVars = None
         self.pathMPS = None
         self.name = instDict['name']
         self.retailers = instDict['nodes'] - 1
@@ -261,26 +262,96 @@ class VRP(Instance):
             return False
         return checkSubTour
 
-    def run(self):
+    def run(
+        self,
+        outImportNeighborhoods = True,
+        outImportedNeighborhoods = 'function',
+        outFunTest = None,
+        outAlpha = 1,
+        outCallback = 'vmnd',
+        outVerbose = True,
+        outMinBCTime = 0,
+        outTimeLimitSeconds = 7200,
+        writeResult = True):
+
         self.exportMPS()
-        VRPmod = solver(
-            self.pathMPS,
-            addlazy= True,
-            funlazy= self.genLazy(),
-            importNeighborhoods= True,
-            importedNeighborhoods= self.genNeighborhoods(funNbhs=True),
-            funTest= None,
-            alpha = 1,
-            callback = 'vmnd',
-            verbose = True
-        )
-        return VRPmod
+
+        if outImportedNeighborhoods is 'function':
+            modelOut = solver(
+                self.pathMPS,
+                addlazy= True,
+                funlazy= self.genLazy(),
+                importNeighborhoods= True,
+                importedNeighborhoods= self.genNeighborhoods(funNbhs=True, varCluster=False),
+                funTest= self.genTestFunction(),
+                alpha = 1,
+                callback = 'vmnd',
+                verbose = False,
+                minBCTime = outMinBCTime,
+                timeLimitSeconds= outTimeLimitSeconds
+            )
+        else:
+            modelOut = solver(
+                self.pathMPS,
+                addlazy= True,
+                funlazy= self.genLazy(),
+                importNeighborhoods= True,
+                importedNeighborhoods= self.genNeighborhoods(funNbhs=False, varCluster=True),
+                funTest= self.genTestFunction(),
+                alpha = outAlpha,
+                callback = outCallback,
+                verbose = outVerbose,
+                minBCTime = outMinBCTime,
+                timeLimitSeconds= outTimeLimitSeconds
+            )
+
+        if writeResult:
+            file = open(os.path.join( os.path.pardir, 'Results' , 'results.txt'), 'a')
+            line = self.name
+            if modelOut.status == GRB.OPTIMAL or modelOut.status == GRB.TIME_LIMIT :
+                if outCallback == 'vmnd':
+                    line += modelOut._line + '-{}-'.format(outImportedNeighborhoods) + '--MIPGAP: {}--'.format(round(modelOut.MIPGap, 3)) + '\n'
+                else:
+                    line += modelOut._line + '-{}-'.format('-pureB&C-') + '--MIPGAP: {}--'.format(round(modelOut.MIPGap, 3)) + '\n'
+             
+            else:
+                line += ' Feasable solution was not found. ' + '\n'
+            file.write(line)
+            file.close()
+
+        self.resultVars = {keyOpVRP(var.varName) : var.x for var in modelOut.getVars() if var.x > 0 }
+
+        return modelOut
 
     def analyzeRes(self): pass
 
     def visualizeRes(self): pass
 
 
+def runSeveralVRP(instNames, nbhs = ('function', 'cluster'), timeLimit = 100):
+    
+    for inst in instNames:
+        instAct = VRP(inst)
+
+        for nbhType in nbhs:
+            
+            instAct.run(
+                outImportNeighborhoods=True,
+                outImportedNeighborhoods=nbhType,
+                outVerbose=False,
+                outTimeLimitSeconds=timeLimit,
+                writeResult=True
+            )
+        instAct = VRP(inst)
+        instAct.run(
+            outImportNeighborhoods=True,
+            outImportedNeighborhoods='function',
+            outVerbose=False,
+            outTimeLimitSeconds=timeLimit,
+            outCallback='pure',
+            writeResult=True
+        )
+
+
 if __name__ == '__main__':
-    vrp1 = VRP(os.path.join('VRPInstances', 'A-n33-k5.vrp'))
-    vrp1.run()
+    runSeveralVRP( [os.path.join('VRPInstances', 'A-n33-k5.vrp')], nbhs = ['cluster', 'function'], timeLimit=100 )

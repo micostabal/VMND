@@ -69,7 +69,7 @@ class IRPCS:
     def __init__(self, path, Vtrunc = 15, Htrunc = 8, Ktrunc = 3):
         inDict = loadIRPCS(path)
         self.pathMPS = None
-        self.name = 'IRPC_{}_{}_{}'.format(Vtrunc, Htrunc, Ktrunc)
+        self.name = 'IRPCS_{}_{}_{}'.format(Vtrunc, Htrunc, Ktrunc)
         self.V = min(inDict['V'], Vtrunc)
         self.H = min(inDict['H'], Htrunc)
         self.r = inDict['r']
@@ -468,20 +468,60 @@ class IRPCS:
             return False
         return SubtourCheck
 
-    def run(self):
+    def run(
+        self,
+        outImportNeighborhoods = True,
+        outImportedNeighborhoods = 'function',
+        outFunTest = None,
+        outAlpha = 1,
+        outCallback = 'vmnd',
+        outVerbose = False,
+        outMinBCTime = 0,
+        outTimeLimitSeconds = 7200,
+        writeResult = True):
         self.exportMPS()
 
-        modelOut = solver(
-            path = self.pathMPS,
-            addlazy = True,
-            funlazy= self.genLazy(),
-            importNeighborhoods= True,
-            importedNeighborhoods= self.genNeighborhoods(varCluster=True),
-            funTest= self.genTestFunction(),
-            alpha = 2,
-            callback = 'vmnd',
-            verbose = True
-        )
+        if outImportedNeighborhoods is not 'cluster':
+            modelOut = solver(
+                path = self.pathMPS,
+                addlazy = True,
+                funlazy= self.genLazy(),
+                importNeighborhoods= True,
+                importedNeighborhoods= self.genNeighborhoods(funNbhs=True),
+                funTest= self.genTestFunction(),
+                alpha = outAlpha,
+                callback = outCallback,
+                verbose = outVerbose,
+                timeLimitSeconds= outTimeLimitSeconds
+            )
+        else:
+            modelOut = solver(
+                path = self.pathMPS,
+                addlazy = True,
+                funlazy= self.genLazy(),
+                importNeighborhoods= True,
+                importedNeighborhoods= self.genNeighborhoods(varCluster=True),
+                funTest= self.genTestFunction(),
+                alpha = outAlpha,
+                callback = outCallback,
+                verbose = outVerbose,
+                timeLimitSeconds= outTimeLimitSeconds
+            )
+
+        if writeResult:
+            file = open(os.path.join( os.path.pardir, 'Results' , 'results.txt'), 'a')
+            line = self.name
+            if modelOut.status == GRB.OPTIMAL or modelOut.status == GRB.TIME_LIMIT :
+                if outCallback == 'vmnd':
+                    line += modelOut._line + '-{}-'.format(outImportedNeighborhoods) + '--MIPGAP: {}--'.format(round(modelOut.MIPGap, 3)) + '\n'
+                else:
+                    line += modelOut._line + '-{}-'.format('-pureB&C-') + '--MIPGAP: {}--'.format(round(modelOut.MIPGap, 3)) + '\n'
+             
+            else:
+                line += ' Feasable solution was not found. ' + '\n'
+            file.write(line)
+            file.close()
+        
         self.resultVars = {IRPCStransformKey(var.varName) : var.x for var in modelOut.getVars() if var.x > 0 }
 
         return modelOut
@@ -509,13 +549,29 @@ class IRPCS:
                 plt.show()
 
 
+def runSeveralIRPCS(instNames, nbhs = ('function', 'cluster'), timeLimit = 100, outVtrunc = 20, outHtrunc = 3, outKtrunc = 3):
+
+    for inst in instNames:
+        instAct = IRPCS(inst, Vtrunc = outVtrunc, Htrunc = outHtrunc, Ktrunc = outKtrunc)
+
+        for nbhType in nbhs:
+            
+            instAct.run(
+                outImportNeighborhoods=True,
+                outImportedNeighborhoods=nbhType,
+                outVerbose=False,
+                outTimeLimitSeconds=timeLimit,
+                writeResult=True
+            )
+        instAct = IRPCS(inst)
+        instAct.run(
+            outImportNeighborhoods=True,
+            outImportedNeighborhoods='function',
+            outVerbose=False,
+            outTimeLimitSeconds=timeLimit,
+            outCallback='pure',
+            writeResult=True
+        )
+
 if __name__ == '__main__':
-
-    n = 25
-    K = 3
-    H = 5
-
-    inst1 = IRPCS(os.path.join('IRPCSInstances', 'Inst1.txt'), Vtrunc=n, Htrunc=H, Ktrunc= K)
-    inst1.run()
-    """inst1.exportMPS()
-    inst1.genNeighborhoods(varCluster=True)"""
+    runSeveralIRPCS( [ os.path.join( 'IRPCSInstances', 'inst1.txt') ] )

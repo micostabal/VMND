@@ -2,7 +2,7 @@ from gurobipy import *
 import numpy as np
 from math import trunc
 from ConComp import getSubsets
-from Neighborhood import Neighborhoods, genIRPneighborhoods, genIRPneigh, varClusterFromMPS
+from Neighborhood import Neighborhoods, varClusterFromMPS
 from Others import loadMPS
 from Functions import transformKey, genClusterNeighborhoods
 from Cuts import genSubtourLazy, Cut, getCheckSubTour
@@ -404,62 +404,6 @@ def solver(
 def creator(path):
     return loadMPS(path)
 
-def runSeveral(heuristic = 'vmnd'):
-    for nodes in [15]:
-        for vers in [2]:
-            for i in range(2, 3):
-                path = os.path.join('MIPLIB', 'abs{}n{}_{}.mps'.format(vers, nodes, i))
-                line = path
-                n , H, K = nodes, 3, 2
-                nsAct = Neighborhoods(lowest = 2, highest = 5, randomSet = False, outerNeighborhoods = genIRPneigh(n, H, K))
-                mout = solver (
-                        path,
-                        addlazy= True,
-                        funlazy= genSubtourLazy(n, H, K),
-                        importNeighborhoods= True,
-                        importedNeighborhoods= nsAct,
-                        funTest= getCheckSubTour(n, H, K),
-                        alpha = 1,
-                        callback = heuristic,
-                        verbose = True,
-                        minBCTime = 6,
-                        timeTimitSeconds= 100
-                )
-                
-                if mout.status == GRB.OPTIMAL or mout.status == GRB.TIME_LIMIT :
-                    file = open('{}results.txt'.format(heuristic.upper()), 'a')
-                    line += mout._line + '--MIPGAP: {}--'.format(round(mout.MIPGap, 3)) + '\n'
-                    file.write(line.lstrip('MIPLIB//'))
-                    file.close()
-                    print('Finished Model {}'.format(line.lstrip('MIPLIB//')))
-                else:
-                    file = open('{}results.txt'.format(heuristic.upper()), 'a')
-                    line += ' OPTIMALITY WAS NOT REACHED' + '\n'
-                    file.write(line.lstrip('MIPLIB//'))
-                    file.close()
-
-def compareGaps(path):
-    # Initial parameters
-    n, H, K = 15, 3, 2
-
-    # Neighborhoods are set
-    nsAct = Neighborhoods(lowest = 2, highest = 5, randomSet = False, outerNeighborhoods = genIRPneigh(n, H, K))
-    # Mdoel is executed
-    vmndModel = solver(
-        path,
-        addlazy = True,
-        funlazy = genSubtourLazy(n, H, K),
-        importNeighborhoods = True,
-        importedNeighborhoods = nsAct,
-        funTest = getCheckSubTour(n, H, K),
-        alpha = 3,
-        callback = 'pure',
-        verbose = True
-        )
-    vmndGapList = vmndModel._gapsTimes
-    print(vmndGapList)
-
-
 if __name__ == '__main__':
     path = os.path.join('MIPLIB', 'binkar10_1.mps')
 
@@ -474,7 +418,7 @@ if __name__ == '__main__':
         funTest= None,
         callback = 'vmnd',
         alpha = 1,
-        minBCTime= 5,
+        minBCTime= 1,
         timeLimitSeconds= None
     )
     

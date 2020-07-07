@@ -345,20 +345,65 @@ class IRP(Instance):
             return False
         return checkSubTour
 
-    def run(self, thisAlpha = 1):
+    def run(
+        self,
+        outImportNeighborhoods = True,
+        outImportedNeighborhoods = 'function',
+        outFunTest = None,
+        outAlpha = 1,
+        outCallback = 'vmnd',
+        outVerbose = True,
+        outMinBCTime = 0,
+        outTimeLimitSeconds = 7200,
+        writeResult = True):
         self.exportMPS()
-        modelOut = solver(
-            path = self.pathMPS,
-            addlazy = True,
-            funlazy= self.genLazy(),
-            importNeighborhoods= True,
-            importedNeighborhoods= self.genNeighborhoods(varCluster=True, nCltrs = 10, funNbhs = False),
-            funTest= self.genTestFunction(),
-            alpha = thisAlpha,
-            minBCTime = 0,
-            callback = 'vmnd',
-            verbose = True
-        )
+
+        if outImportedNeighborhoods is not 'cluster':
+            modelOut = solver(
+                path = self.pathMPS,
+                addlazy = True,
+                funlazy= self.genLazy(),
+                importNeighborhoods= True,
+                importedNeighborhoods= self.genNeighborhoods(funNbhs = True, varCluster=False),
+                funTest= self.genTestFunction(),
+                alpha = outAlpha,
+                minBCTime = outMinBCTime,
+                callback = outCallback,
+                verbose = outVerbose
+            )
+        elif outImportedNeighborhoods == 'cluster':
+            modelOut = solver(
+                path = self.pathMPS,
+                addlazy = True,
+                funlazy= self.genLazy(),
+                importNeighborhoods= True,
+                importedNeighborhoods= self.genNeighborhoods(varCluster = True),
+                funTest= self.genTestFunction(),
+                alpha = outAlpha,
+                minBCTime = 0,
+                callback = outCallback,
+                verbose = True
+            )
+        else:
+            print('Error')
+            return 0
+
+        if writeResult:
+            file = open(os.path.join( os.path.pardir, 'Results' , 'results.txt'), 'a')
+            line = self.name
+            if modelOut.status == GRB.OPTIMAL or modelOut.status == GRB.TIME_LIMIT :
+                if outCallback == 'vmnd':
+                    line += modelOut._line + '-{}-'.format(outImportedNeighborhoods) + '--MIPGAP: {}--'.format(round(modelOut.MIPGap, 3)) + '\n'
+                else:
+                    line += modelOut._line + '-{}-'.format('-pureB&C-') + '--MIPGAP: {}--'.format(round(modelOut.MIPGap, 3)) + '\n'
+             
+            else:
+                line += ' Feasable solution was not found. ' + '\n'
+            file.write(line)
+            file.close()
+
+
+
         self.resultVars = {transformKey(var.varName) : var.x for var in modelOut.getVars() if var.x > 0 }
         return modelOut
 
@@ -385,10 +430,36 @@ class IRP(Instance):
                 plt.show()
 
 
+def runSeveralIRP(instNames, nbhs = ('function', 'cluster'), timeLimit = 100):
+    
+    for inst in instNames:
+        instAct = IRP(inst)
+
+        for nbhType in nbhs:
+            
+            instAct.run(
+                outImportNeighborhoods=True,
+                outImportedNeighborhoods=nbhType,
+                outVerbose=False,
+                outTimeLimitSeconds=timeLimit,
+                writeResult=True
+            )
+        instAct = IRP(inst)
+        instAct.run(
+            outImportNeighborhoods=True,
+            outImportedNeighborhoods='function',
+            outVerbose=False,
+            outTimeLimitSeconds=timeLimit,
+            outCallback='pure',
+            writeResult=True
+        )
+
+
+
 if __name__ == '__main__':
-    inst1 = IRP('abs1n100_4.dat')
-    #inst1.run(thisAlpha = 1)
-    inst1.run()
-    #inst1.visualizeRes()
+    runSeveralIRP(
+        [ 'abs1n5_3.dat', 'abs1n15_4.dat' ],
+        timeLimit=100,
+        nbhs= ('normal', 'cluster') )
 
     print('----------------- Program reached End of Execution Succesfully -----------------')

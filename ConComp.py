@@ -38,7 +38,7 @@ Given a list of undirected edges with nodes indexes and the number n of
 nodes of the graph, the function returns a list of lists representing the
 subsets that should generate the cut.
 """
-def MFComponents(edges, n):
+def MFComponents(edges, n, filterZero = True):
     # Graph is created.
     G = nx.DiGraph()
     for edge in edges:
@@ -64,8 +64,10 @@ def MFComponents(edges, n):
             if flow_value >= 1:
                 newCC.append(i)
         CC.append(newCC)
-    
-    print(CC)
+
+    if filterZero:
+        out = [elem for elem in CC if 0 not in elem]
+        return out
 
     return CC
 
@@ -88,4 +90,5 @@ if __name__ == '__main__':
     #print(getSubsets(EX4, 10))
     #print(getSubsets(EX5, 10))
     #print(getSubsets(EX6, 10))
-    MFComponents(EX5, 8)
+    print(MFComponents(EX7, 8))
+    print(getSubsets(EX7, 8))

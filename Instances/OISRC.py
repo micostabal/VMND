@@ -166,32 +166,83 @@ class OISRC(Instance):
 
     def genTestFunction(self): pass
 
-    def run(self):
+    def run(
+        self,
+        outImportNeighborhoods = True,
+        outImportedNeighborhoods = 'function',
+        outFunTest = None,
+        outAlpha = 1,
+        outCallback = 'vmnd',
+        outVerbose = True,
+        outMinBCTime = 0,
+        outTimeLimitSeconds = 7200,
+        writeResult = True):
         self.exportMPS()
 
-        nbhs = self.genNeighborhoods()
 
-        exModel = solver(
-            self.pathMPS,
-            verbose = True,
-            addlazy= False, 
-            funlazy= None,
-            importNeighborhoods= True, 
-            importedNeighborhoods= nbhs,
-            funTest= None, 
-            callback = 'vmnd',
-            alpha = 1,
-            minBCTime= 0
-        )
-        self.outputvars = {var.varName : var.x for var in exModel.getVars() if var.x > 0 }
-        return exModel
+        if outImportedNeighborhoods is 'cluster':
+            modelOut = solver(
+                self.pathMPS,
+                verbose = False,
+                addlazy= False, 
+                funlazy= None,
+                importNeighborhoods= outImportNeighborhoods, 
+                importedNeighborhoods= self.genNeighborhoods(),
+                funTest= None, 
+                callback = outCallback,
+                alpha = outAlpha,
+                minBCTime= outMinBCTime,
+                timeLimitSeconds= outTimeLimitSeconds
+            )
+        else:
+            print('Cluster Neighborhoods are the only available in this model.')
+        
+
+        if writeResult:
+            file = open(os.path.join( os.path.pardir, 'Results' , 'results.txt'), 'a')
+            line = self.name
+            if modelOut.status == GRB.OPTIMAL or modelOut.status == GRB.TIME_LIMIT :
+                if outCallback == 'vmnd':
+                    line += modelOut._line + '-{}-'.format(outImportedNeighborhoods) + '--MIPGAP: {}--'.format(round(modelOut.MIPGap, 3)) + '\n'
+                else:
+                    line += modelOut._line + '-{}-'.format('-pureB&C-') + '--MIPGAP: {}--'.format(round(modelOut.MIPGap, 3)) + '\n'
+             
+            else:
+                line += ' Feasable solution was not found. ' + '\n'
+            file.write(line)
+            file.close()
+
+        self.outputvars = {var.varName : var.x for var in modelOut.getVars() if var.x > 0 }
+        return modelOut
 
     def analyzeRes(self): pass
 
     def visualizeRes(self): pass
 
 
-if __name__ == '__main__':
-    si1 = OISRC(os.path.join('OISRCInstances', 'instance_15_2_170_1.oisrc'))
+def runSeveralOISRC(instNames = [os.path.join('OISRCInstances', 'instance_15_2_170_1.oisrc')], nbhs = ('cluster', ), timeLimit = 100 ):
 
-    si1.run()
+    for inst in instNames:
+        instAct = OISRC(inst)
+
+        for nbhType in nbhs:
+            
+            instAct.run(
+                outImportNeighborhoods=True,
+                outImportedNeighborhoods=nbhType,
+                outVerbose=False,
+                outTimeLimitSeconds=timeLimit,
+                writeResult=True
+            )
+        instAct = OISRC(inst)
+        instAct.run(
+            outImportNeighborhoods=True,
+            outImportedNeighborhoods='cluster',
+            outVerbose=False,
+            outTimeLimitSeconds=timeLimit,
+            outCallback='pure',
+            writeResult=True
+        )
+
+if __name__ == '__main__':
+    runSeveralOISRC()

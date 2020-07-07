@@ -380,21 +380,64 @@ class MVRPD(Instance):
             return False
         return checkSubTour
 
-    def run(self):
+    def run(
+        self,
+        outImportNeighborhoods = True,
+        outImportedNeighborhoods = 'function',
+        outFunTest = None,
+        outAlpha = 1,
+        outCallback = 'vmnd',
+        outVerbose = True,
+        outMinBCTime = 0,
+        outTimeLimitSeconds = 7200,
+        writeResult = True
+        ):
         self.exportMPS()
 
-        modelOut = solver(
-            path = self.pathMPS,
-            addlazy = False,
-            funlazy= None,
-            importNeighborhoods= True,
-            importedNeighborhoods= self.genNeighborhoods(funNbhs=True),
-            funTest= self.genTestFunction(),
-            alpha = 1,
-            callback = 'vmnd',
-            verbose = True,
-            minBCTime = 2
-        )
+
+        if outImportedNeighborhoods == 'function':
+            modelOut = solver(
+                path = self.pathMPS,
+                addlazy = False,
+                funlazy= None,
+                importNeighborhoods= True,
+                importedNeighborhoods= self.genNeighborhoods(funNbhs=True),
+                funTest= self.genTestFunction(),
+                alpha = outAlpha,
+                callback = outVerbose,
+                verbose = outVerbose,
+                minBCTime = outMinBCTime,
+                timeLimitSeconds= outTimeLimitSeconds
+            )
+        elif outImportedNeighborhoods == 'cluster':
+            modelOut = solver(
+                path = self.pathMPS,
+                addlazy = False,
+                funlazy= None,
+                importNeighborhoods= True,
+                importedNeighborhoods= self.genNeighborhoods(varCluster=True),
+                funTest= self.genTestFunction(),
+                alpha = outAlpha,
+                callback = outVerbose,
+                verbose = outVerbose,
+                minBCTime = outMinBCTime,
+                timeLimitSeconds= outTimeLimitSeconds
+            )
+
+        if writeResult:
+            file = open(os.path.join( os.path.pardir, 'Results' , 'results.txt'), 'a')
+            line = self.name
+            if modelOut.status == GRB.OPTIMAL or modelOut.status == GRB.TIME_LIMIT :
+                if outCallback == 'vmnd':
+                    line += modelOut._line + '-{}-'.format(outImportedNeighborhoods) + '--MIPGAP: {}--'.format(round(modelOut.MIPGap, 3)) + '\n'
+                else:
+                    line += modelOut._line + '-{}-'.format('-pureB&C-') + '--MIPGAP: {}--'.format(round(modelOut.MIPGap, 3)) + '\n'
+             
+            else:
+                line += ' Feasable solution was not found. ' + '\n'
+            file.write(line)
+            file.close()
+
         self.resultVars = {keyOpMVRPD(var.varName) : var.x for var in modelOut.getVars() if var.x > 0 }
         return modelOut
 
@@ -422,9 +465,32 @@ class MVRPD(Instance):
             plt.show()
 
 
+def runSeveralMVRPD(instNames, nbhs = ('normal', 'cluster'), timeLimit = 100):
+    
+    for inst in instNames:
+        instAct = MVRPD(inst)
+
+        for nbhType in nbhs:
+            
+            instAct.run(
+                outImportNeighborhoods=True,
+                outImportedNeighborhoods=nbhType,
+                outVerbose=False,
+                outTimeLimitSeconds=timeLimit,
+                writeResult=True
+            )
+        instAct = MVRPD(inst)
+        instAct.run(
+            outImportNeighborhoods=True,
+            outImportedNeighborhoods='function',
+            outVerbose=False,
+            outTimeLimitSeconds=timeLimit,
+            outCallback='pure',
+            writeResult=True
+        )
+
+
 if __name__ == '__main__':
 
-    ## The instance is created.
-    mvrpd1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs1n25_h_6.dat' ) )
-    mvrpd1.run()
+    runSeveralMVRPD( [ os.path.join( 'MVRPDInstances' , 'ajs1n25_h_3.dat' ) ], nbhs=('function', 'cluster') ) 
     
