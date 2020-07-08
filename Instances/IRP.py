@@ -5,7 +5,7 @@ sys.path.append(os.path.pardir)
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
-from ConComp import getSubsets
+from ConComp import getSubsets, MFComponents
 from Neighborhood import genIRPneighborhoods, Neighborhoods
 from Functions import transformKey, genClusterNeighborhoods
 from Cuts import Cut
@@ -331,7 +331,7 @@ class IRP(Instance):
                     edges = [(key[1], key[2]) for key in vals.keys() if (key[3], key[4]) == (k, t) and key[0] == 'y']
                     if len(edges) > 0:
                         #visualize(edges)
-                        subsets = getSubsets(edges, self.n)
+                        subsets = MFComponents(edges, self.n, filterZero = True)
                         if len(subsets) > 0:
                             print(k, t, subsets)
                             print('---------- ERROR! ----------')
@@ -358,13 +358,15 @@ class IRP(Instance):
         writeResult = True):
         self.exportMPS()
 
-        if outImportedNeighborhoods is not 'cluster':
+        if outImportedNeighborhoods == 'separated':
+            nbhs = self.genNeighborhoods(funNbhs = True, varCluster=False)
+            nbhs.separateParameterizations()
             modelOut = solver(
                 path = self.pathMPS,
                 addlazy = True,
                 funlazy= self.genLazy(),
                 importNeighborhoods= True,
-                importedNeighborhoods= self.genNeighborhoods(funNbhs = True, varCluster=False),
+                importedNeighborhoods = nbhs,
                 funTest= self.genTestFunction(),
                 alpha = outAlpha,
                 minBCTime = outMinBCTime,
@@ -385,8 +387,18 @@ class IRP(Instance):
                 verbose = True
             )
         else:
-            print('Error')
-            return 0
+            modelOut = solver(
+                path = self.pathMPS,
+                addlazy = True,
+                funlazy= self.genLazy(),
+                importNeighborhoods= True,
+                importedNeighborhoods = self.genNeighborhoods(funNbhs = True, varCluster=False),
+                funTest= self.genTestFunction(),
+                alpha = outAlpha,
+                minBCTime = outMinBCTime,
+                callback = outCallback,
+                verbose = outVerbose
+            )
 
         if writeResult:
             file = open(os.path.join( os.path.pardir, 'Results' , 'results.txt'), 'a')
@@ -401,8 +413,6 @@ class IRP(Instance):
                 line += ' Feasable solution was not found. ' + '\n'
             file.write(line)
             file.close()
-
-
 
         self.resultVars = {transformKey(var.varName) : var.x for var in modelOut.getVars() if var.x > 0 }
         return modelOut
@@ -430,7 +440,7 @@ class IRP(Instance):
                 plt.show()
 
 
-def runSeveralIRP(instNames, nbhs = ('function', 'cluster'), timeLimit = 100):
+def runSeveralIRP(instNames, nbhs = ('function', 'cluster'), timeLimit = 100, includePure = True):
     
     for inst in instNames:
         instAct = IRP(inst)
@@ -444,22 +454,27 @@ def runSeveralIRP(instNames, nbhs = ('function', 'cluster'), timeLimit = 100):
                 outTimeLimitSeconds=timeLimit,
                 writeResult=True
             )
-        instAct = IRP(inst)
-        instAct.run(
-            outImportNeighborhoods=True,
-            outImportedNeighborhoods='function',
-            outVerbose=False,
-            outTimeLimitSeconds=timeLimit,
-            outCallback='pure',
-            writeResult=True
-        )
+
+        if includePure:
+            instAct = IRP(inst)
+            instAct.run(
+                outImportNeighborhoods=True,
+                outImportedNeighborhoods='function',
+                outVerbose=False,
+                outTimeLimitSeconds=timeLimit,
+                outCallback='pure',
+                writeResult=True
+            )
 
 
 
 if __name__ == '__main__':
-    runSeveralIRP(
+    """runSeveralIRP(
         [ 'abs1n5_3.dat', 'abs1n15_4.dat' ],
         timeLimit=100,
-        nbhs= ('normal', 'cluster') )
+        nbhs= ('normal', 'cluster') )"""
+
+    inst1 = IRP('abs2n25_4.dat')
+    inst1.run(writeResult = False, outImportedNeighborhoods = 'cluster')
 
     print('----------------- Program reached End of Execution Succesfully -----------------')

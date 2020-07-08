@@ -149,7 +149,8 @@ def localSearch(model):
 
     # Improved is always set to false.
     model._LSImproved = False
-
+    
+    
     # Model is loaded.
     locModel = loadMPS(model._path)
     locModel.setParam('OutputFlag', 0)
@@ -310,6 +311,7 @@ def solver(
     minBCTime = 7,
     timeLimitSeconds = 300
     ):
+
     model = Model()
     model = loadMPS(path)
 

@@ -7,6 +7,7 @@ import numpy as np
 from gurobipy import *
 import networkx as nx
 import matplotlib.pyplot as plt
+from ConComp import MFComponents
 from Cuts import Cut, getSubsets, genSubtourLazy, getCheckSubTour
 from Neighborhood import Neighborhoods, genIRPneigh
 from VMNDproc import solver
@@ -454,7 +455,7 @@ class IRPCS:
                         
                     edges = [(key[1], key[2]) for key in vals.keys() if (key[3], key[4]) == (k, t) and key[0] == 'x']
                     if len(edges) > 0:
-                        subsets = getSubsets(edges, self.V)
+                        subsets = MFComponents(edges, self.V, filterZero = True)
                         if len(subsets) > 0:
                             print(k, t, subsets)
                             print('---------- ERROR! ----------')
@@ -481,7 +482,23 @@ class IRPCS:
         writeResult = True):
         self.exportMPS()
 
-        if outImportedNeighborhoods is not 'cluster':
+        if outImportedNeighborhoods == 'separated':
+            nbhs = self.genNeighborhoods(funNbhs=True)
+            nbhs.separateParameterizations()
+
+            modelOut = solver(
+                path = self.pathMPS,
+                addlazy = True,
+                funlazy= self.genLazy(),
+                importNeighborhoods= True,
+                importedNeighborhoods= nbhs,
+                funTest= self.genTestFunction(),
+                alpha = outAlpha,
+                callback = outCallback,
+                verbose = outVerbose,
+                timeLimitSeconds= outTimeLimitSeconds
+            )
+        elif outImportedNeighborhoods == 'function':
             modelOut = solver(
                 path = self.pathMPS,
                 addlazy = True,
@@ -494,13 +511,26 @@ class IRPCS:
                 verbose = outVerbose,
                 timeLimitSeconds= outTimeLimitSeconds
             )
-        else:
+        elif outImportedNeighborhoods == 'cluster':
             modelOut = solver(
                 path = self.pathMPS,
                 addlazy = True,
                 funlazy= self.genLazy(),
                 importNeighborhoods= True,
                 importedNeighborhoods= self.genNeighborhoods(varCluster=True),
+                funTest= self.genTestFunction(),
+                alpha = outAlpha,
+                callback = outCallback,
+                verbose = outVerbose,
+                timeLimitSeconds= outTimeLimitSeconds
+            )
+        else:
+            modelOut = solver(
+                path = self.pathMPS,
+                addlazy = True,
+                funlazy= self.genLazy(),
+                importNeighborhoods= True,
+                importedNeighborhoods= self.genNeighborhoods(varCluster=False, funNbhs = False),
                 funTest= self.genTestFunction(),
                 alpha = outAlpha,
                 callback = outCallback,
@@ -549,7 +579,7 @@ class IRPCS:
                 plt.show()
 
 
-def runSeveralIRPCS(instNames, nbhs = ('function', 'cluster'), timeLimit = 100, outVtrunc = 20, outHtrunc = 3, outKtrunc = 3):
+def runSeveralIRPCS(instNames, nbhs = ('function', 'cluster'), timeLimit = 100, outVtrunc = 20, outHtrunc = 3, outKtrunc = 3, includePure = True):
 
     for inst in instNames:
         instAct = IRPCS(inst, Vtrunc = outVtrunc, Htrunc = outHtrunc, Ktrunc = outKtrunc)
@@ -563,15 +593,24 @@ def runSeveralIRPCS(instNames, nbhs = ('function', 'cluster'), timeLimit = 100, 
                 outTimeLimitSeconds=timeLimit,
                 writeResult=True
             )
-        instAct = IRPCS(inst)
-        instAct.run(
-            outImportNeighborhoods=True,
-            outImportedNeighborhoods='function',
-            outVerbose=False,
-            outTimeLimitSeconds=timeLimit,
-            outCallback='pure',
-            writeResult=True
-        )
+        
+        if includePure:
+            instAct = IRPCS(inst, Vtrunc = outVtrunc, Htrunc = outHtrunc, Ktrunc = outKtrunc)
+            instAct.run(
+                outImportNeighborhoods=True,
+                outImportedNeighborhoods='function',
+                outVerbose=False,
+                outTimeLimitSeconds=timeLimit,
+                outCallback='pure',
+                writeResult=True
+            )
 
 if __name__ == '__main__':
-    runSeveralIRPCS( [ os.path.join( 'IRPCSInstances', 'inst1.txt') ] )
+    #runSeveralIRPCS( [ os.path.join( 'IRPCSInstances', 'inst1.txt') ] )
+
+    inst1 = IRPCS( os.path.join( 'IRPCSInstances', 'inst1.txt'), Vtrunc = 20, Htrunc = 3, Ktrunc = 3 )
+    inst1.run(
+        outImportedNeighborhoods= 'function',
+        outVerbose= True,
+        writeResult=False
+    )

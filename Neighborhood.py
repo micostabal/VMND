@@ -63,7 +63,6 @@ class Neighborhoods:
         self.neighborhoods = outerNeighborhoods
 
     def exportNeighborhood(self, name):
-        
         strout = ''
         strout += str(name) +'\n'
         strout += str(self.lowest) +'\n'
@@ -79,6 +78,38 @@ class Neighborhoods:
         file = open( name + '.txt', 'w')
         file.write(strout)
         file.close()
+
+    def separateParameterizations(self):
+        if self.useFunction:
+            newOldDict = {}
+            counter = 0
+            
+            for nb in range(self.lowest, self.highest):
+                for param in self.neighborhoods[nb]:
+                    counter += 1
+                    newOldDict[counter] = (nb, param)
+            
+            oldFunNeighborhoods = self.funNeighborhoods
+
+            def newFunNeighborhoods(varName, depth, param):
+                return oldFunNeighborhoods(varName, newOldDict[depth][0], newOldDict[depth][1])
+
+            self.funNeighborhoods = newFunNeighborhoods
+            self.neighborhoods = {i : (0,) for i in range(1, counter + 1)}
+            self.lowest = 1
+            self.highest = counter
+        else:
+            newOuter = {}
+            counter = 0
+
+            for nb in range(self.lowest, self.highest):
+                for param in self.neighborhoods[nb]:
+                    counter += 1
+                    newOuter[counter] = {param : self.neighborhoods[nb][param]}
+            
+            self.lowest = 1
+            self.highest = counter
+            self.neighborhoods = newOuter
 
 
 def genIRPneighborhoods(n, H, K):

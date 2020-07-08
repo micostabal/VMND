@@ -5,7 +5,7 @@ from functools import reduce
 import networkx as nx
 
 """
-Transforms the list of edges to a matrix
+Transforms the list of edges into a matrix
 """
 def graphMaker(edges, n):
     graph = [[ 0 for j in range(n + 1)] for i in range(n + 1)]

@@ -131,7 +131,7 @@ def VisualizeNonZeros(path = os.path.join("MIPLIB", "SomeInstanceIRPCS25_7_3.mps
 def genAffinityMatrix(
         path = os.path.join("MIPLIB", "SomeInstanceIRPCS15_8_3.mps" ),
         varFilter = lambda x : x[0] == 'x',
-        verbose = False ):
+        verbose = True ):
     starting_time = time.time()
     m = read(path)
     nzs = pd.DataFrame(get_matrix_coos_new(m), columns=['row_idx', 'col_idx', 'name'])

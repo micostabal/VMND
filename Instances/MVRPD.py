@@ -394,7 +394,6 @@ class MVRPD(Instance):
         ):
         self.exportMPS()
 
-
         if outImportedNeighborhoods == 'function':
             modelOut = solver(
                 path = self.pathMPS,
@@ -404,7 +403,23 @@ class MVRPD(Instance):
                 importedNeighborhoods= self.genNeighborhoods(funNbhs=True),
                 funTest= self.genTestFunction(),
                 alpha = outAlpha,
-                callback = outVerbose,
+                callback = outCallback,
+                verbose = outVerbose,
+                minBCTime = outMinBCTime,
+                timeLimitSeconds= outTimeLimitSeconds
+            )
+        elif outImportedNeighborhoods == 'separated':
+            nbhs = self.genNeighborhoods(funNbhs=True)
+            nbhs.separateParameterizations()
+            modelOut = solver(
+                path = self.pathMPS,
+                addlazy = False,
+                funlazy= None,
+                importNeighborhoods= True,
+                importedNeighborhoods= nbhs,
+                funTest= self.genTestFunction(),
+                alpha = outAlpha,
+                callback = outCallback,
                 verbose = outVerbose,
                 minBCTime = outMinBCTime,
                 timeLimitSeconds= outTimeLimitSeconds
@@ -418,7 +433,21 @@ class MVRPD(Instance):
                 importedNeighborhoods= self.genNeighborhoods(varCluster=True),
                 funTest= self.genTestFunction(),
                 alpha = outAlpha,
-                callback = outVerbose,
+                callback = outCallback,
+                verbose = outVerbose,
+                minBCTime = outMinBCTime,
+                timeLimitSeconds= outTimeLimitSeconds
+            )
+        else:
+            modelOut = solver(
+                path = self.pathMPS,
+                addlazy = False,
+                funlazy= None,
+                importNeighborhoods= True,
+                importedNeighborhoods= self.genNeighborhoods(funNbhs=False, varCluster=False, Kvicinities=True),
+                funTest= self.genTestFunction(),
+                alpha = outAlpha,
+                callback = outCallback,
                 verbose = outVerbose,
                 minBCTime = outMinBCTime,
                 timeLimitSeconds= outTimeLimitSeconds
@@ -465,7 +494,7 @@ class MVRPD(Instance):
             plt.show()
 
 
-def runSeveralMVRPD(instNames, nbhs = ('normal', 'cluster'), timeLimit = 100):
+def runSeveralMVRPD(instNames, nbhs = ('normal', 'cluster'), timeLimit = 100, includePure = True):
     
     for inst in instNames:
         instAct = MVRPD(inst)
@@ -479,18 +508,26 @@ def runSeveralMVRPD(instNames, nbhs = ('normal', 'cluster'), timeLimit = 100):
                 outTimeLimitSeconds=timeLimit,
                 writeResult=True
             )
-        instAct = MVRPD(inst)
-        instAct.run(
-            outImportNeighborhoods=True,
-            outImportedNeighborhoods='function',
-            outVerbose=False,
-            outTimeLimitSeconds=timeLimit,
-            outCallback='pure',
-            writeResult=True
-        )
+
+        if includePure:
+            instAct = MVRPD(inst)
+            instAct.run(
+                outImportNeighborhoods=True,
+                outImportedNeighborhoods='function',
+                outVerbose=False,
+                outTimeLimitSeconds=timeLimit,
+                outCallback='pure',
+                writeResult=True
+            )
 
 
 if __name__ == '__main__':
 
-    runSeveralMVRPD( [ os.path.join( 'MVRPDInstances' , 'ajs1n25_h_3.dat' ) ], nbhs=('function', 'cluster') ) 
+    #runSeveralMVRPD( [ os.path.join( 'MVRPDInstances' , 'ajs1n25_h_3.dat' ) ], nbhs=('function', 'cluster') )
+    inst1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs1n50_l_6.dat' ) )
+    inst1.run(
+        outImportedNeighborhoods='separated',
+        writeResult=False,
+        outVerbose=True
+    )
     

@@ -284,9 +284,26 @@ class VRP(Instance):
                 importNeighborhoods= True,
                 importedNeighborhoods= self.genNeighborhoods(funNbhs=True, varCluster=False),
                 funTest= self.genTestFunction(),
+                alpha = outAlpha,
+                callback = outCallback,
+                verbose = outVerbose,
+                minBCTime = outMinBCTime,
+                timeLimitSeconds= outTimeLimitSeconds
+            )
+        elif outImportedNeighborhoods is 'separated':
+            nbhs = self.genNeighborhoods(funNbhs=True)
+            nbhs.separateParameterizations()
+
+            modelOut = solver(
+                self.pathMPS,
+                addlazy= True,
+                funlazy= self.genLazy(),
+                importNeighborhoods= True,
+                importedNeighborhoods= nbhs,
+                funTest= self.genTestFunction(),
                 alpha = 1,
-                callback = 'vmnd',
-                verbose = False,
+                callback = outCallback,
+                verbose = outVerbose,
                 minBCTime = outMinBCTime,
                 timeLimitSeconds= outTimeLimitSeconds
             )
@@ -354,4 +371,11 @@ def runSeveralVRP(instNames, nbhs = ('function', 'cluster'), timeLimit = 100):
 
 
 if __name__ == '__main__':
-    runSeveralVRP( [os.path.join('VRPInstances', 'A-n33-k5.vrp')], nbhs = ['cluster', 'function'], timeLimit=100 )
+    #runSeveralVRP( [os.path.join('VRPInstances', 'A-n33-k5.vrp')], nbhs = ['cluster', 'function'], timeLimit=100 )
+
+    inst1 = VRP( path = os.path.join('VRPInstances', 'A-n45-k7.vrp') )
+    inst1.run(
+        outImportedNeighborhoods= 'cluster',
+        writeResult = False,
+        outVerbose = True
+    )
