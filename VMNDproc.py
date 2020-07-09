@@ -66,7 +66,7 @@ def VMNDCallback(model, where):
 
             model._incFound = True
             model._restrTime = True
-            model._IncBeforeLS = model.cbGet(GRB.Callback.MIPSOL_OBJ)
+            model._IncBeforeLS = model.cbGet(GRB.Callback.MIPSOL_OBJBST)
             model._vals = model.cbGetSolution(model._vars)
 
             #### Local search is performed ####
@@ -98,7 +98,6 @@ def VMNDCallback(model, where):
             
     # An integer solution has been found.
     if where == GRB.Callback.MIPSOL and model._incFound:
-        
         # We check whether a new incumbent has been found.
         if model.cbGet(GRB.Callback.MIPSOL_OBJBST) - model._IncBeforeLS <= -0.01:
             
@@ -376,8 +375,8 @@ def solver(
         model.setParam("LazyConstraints", 1)
 
         if callback == 'vmnd':
-            model.setParam('ImproveStartNodes', 100)
-            model.setParam('MIPFocus', 0)
+            model.setParam('ImproveStartNodes', 200)
+            model.setParam('MIPFocus', 3)
         else:
             model.setParam('ImproveStartNodes', 10)
             model.setParam('MIPFocus', 0)

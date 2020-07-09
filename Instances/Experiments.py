@@ -6,7 +6,7 @@ from VRP import runSeveralVRP
 from OISRC import runSeveralOISRC
 
 
-official = True
+official = False
 
 
 # Official Experiment
@@ -58,7 +58,7 @@ if not official:
 runSeveralIRP(
     IRPinst,
     nbhs = ('separated', 'function'),
-    timeLimit = 7200,
+    timeLimit = 50,
     includePure = True
 )
 
@@ -66,10 +66,10 @@ runSeveralIRP(
 runSeveralIRPCS(
     IRPCSinst,
     nbhs = ('separated', 'function'),
-    timeLimit = 7200,
-    outVtrunc = 55,
+    timeLimit = 50,
+    outVtrunc = 15,
     outHtrunc = 3,
-    outKtrunc = 6,
+    outKtrunc = 3,
     includePure = True
 )
 
@@ -77,14 +77,14 @@ runSeveralIRPCS(
 runSeveralMVRPD(
     MVRPDinst,
     nbhs = ('separated', 'function'),
-    timeLimit = 7200,
+    timeLimit = 50,
     includePure = True
 )
 
 # 4.- OISRC
 runSeveralOISRC(
     OISRCinst,
-    timeLimit = 7200
+    timeLimit = 50
 )
 
 

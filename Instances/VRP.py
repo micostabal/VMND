@@ -57,6 +57,7 @@ class VRP(Instance):
                  - np.array([ self.positions[j][0] , self.positions[j][1] ]))
 
     def createInstance(self):
+
         model = Model()
 
         # We create variables
@@ -373,9 +374,9 @@ def runSeveralVRP(instNames, nbhs = ('function', 'cluster'), timeLimit = 100):
 if __name__ == '__main__':
     #runSeveralVRP( [os.path.join('VRPInstances', 'A-n33-k5.vrp')], nbhs = ['cluster', 'function'], timeLimit=100 )
 
-    inst1 = VRP( path = os.path.join('VRPInstances', 'A-n45-k7.vrp') )
+    inst1 = VRP( path = os.path.join('VRPInstances', 'A-n33-k5.vrp') )
     inst1.run(
-        outImportedNeighborhoods= 'cluster',
+        outImportedNeighborhoods= 'function',
         writeResult = False,
         outVerbose = True
     )
