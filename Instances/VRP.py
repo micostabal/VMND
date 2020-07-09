@@ -95,7 +95,7 @@ class VRP(Instance):
 
         # Symmetry Breaking Constrints
 
-        model.addConstrs( modelVars['y_{}_{}_{}'.format(i, j, k)] <= modelVars['z_{}_{}'.format(i, k)]
+        """model.addConstrs( modelVars['y_{}_{}_{}'.format(i, j, k)] <= modelVars['z_{}_{}'.format(i, k)]
          for i in range(self.totalNodes) for j in range(self.totalNodes) for k in range(1, self.trucks + 1) if i < j )
 
         # Term 29: Symmetry Breaking Constraint
@@ -122,7 +122,7 @@ class VRP(Instance):
 
         model.addConstrs( modelVars['z_{}_{}'.format(i, k)] <= quicksum( modelVars['z_{}_{}'.format(j, k - 1)]
          for j in range(self.totalNodes) if j < i )
-         for i in range(1, self.totalNodes) for k in range(2, self.trucks + 1) )
+         for i in range(1, self.totalNodes) for k in range(2, self.trucks + 1) )"""
 
         # Objective Function is set
         model.setObjective(obj, GRB.MINIMIZE)
