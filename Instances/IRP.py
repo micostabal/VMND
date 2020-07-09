@@ -86,7 +86,7 @@ class IRP(Instance):
         self.h = dictinstance['h']
         self.C = dictinstance['C']
         self.positions = dictinstance['positions']
-        self.K = 8
+        self.K = 12
         self.dist = dictinstance['dist']
         self.resultVars = None
 

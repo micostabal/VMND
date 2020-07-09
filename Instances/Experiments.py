@@ -57,15 +57,9 @@ if not official:
 officialTime = 7210
 
 
-# 1.- IRP
-runSeveralIRP(
-    IRPinst,
-    nbhs = ('separated', 'function'),
-    timeLimit = officialTime,
-    includePure = True
-)
 
-# 2.- IRPCS
+
+# 1.- IRPCS
 runSeveralIRPCS(
     IRPCSinst,
     nbhs = ('separated', 'function'),
@@ -76,7 +70,7 @@ runSeveralIRPCS(
     includePure = True
 )
 
-# 3.- MVRPD
+# 2.- MVRPD
 runSeveralMVRPD(
     MVRPDinst,
     nbhs = ('separated', 'function'),
@@ -84,11 +78,18 @@ runSeveralMVRPD(
     includePure = True
 )
 
-# 4.- OISRC
+# 3.- OISRC
 runSeveralOISRC(
     OISRCinst,
     timeLimit = officialTime
 )
 
+# 4.- IRP
+runSeveralIRP(
+    IRPinst,
+    nbhs = ('separated', 'function'),
+    timeLimit = officialTime,
+    includePure = True
+)
 
 if __name__ == '__main__': pass
