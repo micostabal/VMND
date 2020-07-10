@@ -22,9 +22,9 @@ if official:
         os.path.join( 'IRPCSInstances', 'Inst3.txt')
     ]
     MVRPDinst = [ 
-        os.path.join( 'MVRPDInstances' , 'ajs4n75_l_6.dat' ),
+        os.path.join( 'MVRPDInstances' , 'ajs4n75_h_6.dat' ),
         os.path.join( 'MVRPDInstances' , 'ajs4n100_l_3.dat' ),
-        os.path.join( 'MVRPDInstances' , 'ajs3n75_l_6.dat' )
+        os.path.join( 'MVRPDInstances' , 'ajs3n75_h_6.dat' )
         
     ]
     OISRCinst = [
@@ -54,7 +54,10 @@ if not official:
 
 # Instances are run. Results saved in Results/results.txt
 
-officialTime = 7210
+if official:
+    elapsedTime = 7210
+else:
+    elapsedTime = 50
 
 
 
@@ -63,10 +66,10 @@ officialTime = 7210
 runSeveralIRPCS(
     IRPCSinst,
     nbhs = ('separated', 'function'),
-    timeLimit = officialTime,
-    outVtrunc = 55,
+    timeLimit = elapsedTime,
+    outVtrunc = 70,
     outHtrunc = 3,
-    outKtrunc = 6,
+    outKtrunc = 12,
     includePure = True
 )
 
@@ -74,21 +77,21 @@ runSeveralIRPCS(
 runSeveralMVRPD(
     MVRPDinst,
     nbhs = ('separated', 'function'),
-    timeLimit = officialTime,
+    timeLimit = elapsedTime,
     includePure = True
 )
 
 # 3.- OISRC
 runSeveralOISRC(
     OISRCinst,
-    timeLimit = officialTime
+    timeLimit = elapsedTime
 )
 
 # 4.- IRP
 runSeveralIRP(
     IRPinst,
     nbhs = ('separated', 'function'),
-    timeLimit = officialTime,
+    timeLimit = elapsedTime,
     includePure = True
 )
 

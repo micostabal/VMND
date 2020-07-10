@@ -95,8 +95,12 @@ def VMNDCallback(model, where):
             else:
                 for key in model._vars.keys():
                     model.cbSetSolution(model.getVarByName(key), model._LSImprovedDict[key])
-                    #model.cbUseSolution()
-                    #model._LSImprovedDict = None
+                    
+                # Solution is inmediatly used.
+                model.cbUseSolution()
+
+                # We stop suggesting this solution.
+                model._LSImprovedDict = None
             
     # An integer solution has been found.
     if where == GRB.Callback.MIPSOL and model._incFound:

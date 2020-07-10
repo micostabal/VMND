@@ -22,6 +22,8 @@ Intstances/__pycache__
 !Instances/IRPInstances/abs3n50_1.dat
 !Instances/IRPInstances/abs2n50_3.dat
 !Instances/IRPInstances/abs3n100_2.dat
+!Instances/IRPInstances/abs4n100_3.dat
+!Instances/IRPInstances/abs9n200_2.dat
 
 # IRPCS Instances
 !Instances/IRPCSInstances/Inst1.txt
@@ -33,11 +35,15 @@ Intstances/__pycache__
 !Instances/MVRPDInstances/ajs4n75_h_6.dat
 !Instances/MVRPDInstances/ajs4n100_l_6.dat
 !Instances/MVRPDInstances/ajs3n75_h_6.dat
+!Instances/MVRPDInstances/ajs1n100_l_6.dat
+!Instances/MVRPDInstances/ajs5n100_h_6.dat
+!Instances/MVRPDInstances/ajs4n100_l_6.dat
 
 # OISRC Instances
 !Instances/OISRCInstances/instance_4_2_100_1.oisrc
 !Instances/OISRCInstances/instance_20_4_200_1.oisrc
 !Instances/OISRCInstances/instance_20_4_190_1.oisrc
+!Instances/OISRCInstances/instance_15_2_170_1.oisrc
 
 # VRP Instances
 !Instances/VRPInstances/A-n34-k5.vrp

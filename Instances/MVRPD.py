@@ -21,7 +21,7 @@ def loadMVRPD(path):
     outdict['V'] = int(lines[0][0]) - 1
     outdict['H'] = int(lines[0][1])
     outdict['Q'] = int(lines[0][2])
-    outdict['m'] = 6
+    outdict['m'] = 1
     outdict['h'] = {i : 1 for i in range(1, outdict['V'] + 1)}
     outdict['p'] = {i : 1 for i in range(1, outdict['V'] + 1)}
     outdict['demand'] = {i : 1 for i in range(1, outdict['V'] + 1)}
@@ -36,7 +36,7 @@ def loadMVRPD(path):
         if ind > 0:
             outdict['demand'][ind] = float(i[3])
             outdict['h'][ind] = float(i[4])
-            outdict['p'][ind] = 10 * outdict['h'][ind]
+            outdict['p'][ind] = round(10 * outdict['h'][ind], 1)
             
             outdict['duedates'][ind] = int(i[5])
             outdict['release'][ind] = int(max(1 , outdict['duedates'][ind] - 2))
@@ -95,14 +95,14 @@ class MVRPD(Instance):
          for i in range(self.V + 1) for j in range(self.V + 1) if i != j )
 
         #Term 1.2 : Objective Function: Inventory holding cost for clients visited during the planning horizon.
-        obj += quicksum( self.h[i] * (self.H - self.release[i] ) * modelVars['x_{}_{}_{}'.format(i, j, t)]
-         for t in range( self.release[i] , self.H + 1 ) for i in range(1, self.V + 1) for j in range(self.V + 1) if i != j )
+        obj += quicksum( self.h[i] * quicksum( (t - self.release[i] ) * quicksum( modelVars['x_{}_{}_{}'.format(i, j, t)]
+          for j in range(self.V + 1) if i != j ) for t in range( self.release[i] , self.H + 1 ) ) for i in range(1, self.V + 1) )
 
         #Term 1.3 : Objective Function: Inventory holding cost and penalty for postponed customers.
         obj += quicksum( (self.h[i] * (self.H - self.release[i] ) + self.p[i]) *
          (1 - quicksum( modelVars['x_{}_{}_{}'.format(i, j, t)] for j in range(self.V + 1)
          for t in range( self.release[i] , self.H + 1 ) if j != i ) ) for i in self.C )
-
+        
         #Term 2: Every mandatory customer is visited exactly once:
         model.addConstrs( quicksum( modelVars['x_{}_{}_{}'.format(i, j, t)]
          for j in range(self.V + 1) if j != i for t in range( self.release[i] , self.dueDates[i] + 1 ) ) == 1
@@ -524,10 +524,17 @@ def runSeveralMVRPD(instNames, nbhs = ('normal', 'cluster'), timeLimit = 100, in
 if __name__ == '__main__':
 
     #runSeveralMVRPD( [ os.path.join( 'MVRPDInstances' , 'ajs1n25_h_3.dat' ) ], nbhs=('function', 'cluster') )
-    inst1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs1n50_l_6.dat' ) )
-    inst1.run(
+    inst1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs1n25_h_3.dat' ) )
+    """model = inst1.createInstance()
+    print(model.getObjective())"""
+    """print(inst1.V)
+    print(inst1.m)"""
+    
+    """inst1.run(
         outImportedNeighborhoods='separated',
         writeResult=False,
-        outVerbose=True
-    )
+        outVerbose=True,
+        outCallback = 'pure'
+    )"""
+    #inst1.visualizeRes()
     
