@@ -205,7 +205,7 @@ def varClusterFromMPS(
     labels = genClusterNeighborhoods(
         path = path,
         nClusters = numClu,
-        verbose = False,
+        verbose = True,
         fNbhs = True,
         varFilter = varFilter)
     

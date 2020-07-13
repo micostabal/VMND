@@ -412,20 +412,20 @@ def creator(path):
     return loadMPS(path)
 
 if __name__ == '__main__':
-    path = os.path.join('MIPLIB', 'binkar10_1.mps')
+    path = os.path.join('MIPLIB', 'neos-4387871-tavua.mps')
 
-    nbhs = varClusterFromMPS(path, numClu = 10, varFilter = None)
+    nbhs = varClusterFromMPS(path, numClu = 8, varFilter = None)
     solver(
         path,
         verbose = True,
-        addlazy= False, 
+        addlazy= False,
         funlazy = None,
         importNeighborhoods=True,
         importedNeighborhoods= nbhs,
         funTest= None,
         callback = 'vmnd',
         alpha = 1,
-        minBCTime= 0,
+        minBCTime= 5,
         timeLimitSeconds= None
     )
     
