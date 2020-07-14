@@ -80,7 +80,8 @@ def funNbhs(varName, depth, param):
 
 
 # In this case, the input outerNeighborhoods is a dictionary of dictionaries.
-# We can see that all names are extensively included in each list
+# We can see that all names are extensively included in each list...
+# We use klist as well because we need the list of varaible's names
 outerNbhs = {
     1 : {
         0 : [element for element in klist if int(element.lstrip('C')) > 500 ]
@@ -98,7 +99,7 @@ outerNbhs = {
         0 : [element for element in klist if int(element.lstrip('C')) <= 2000 ]
     }
 }
-# We use klist as well because we need the list of varaible's names
+
 
 
 nbhs = Neighborhoods(
