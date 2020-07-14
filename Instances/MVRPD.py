@@ -21,7 +21,7 @@ def loadMVRPD(path):
     outdict['V'] = int(lines[0][0]) - 1
     outdict['H'] = int(lines[0][1])
     outdict['Q'] = int(lines[0][2])
-    outdict['m'] = 1
+    outdict['m'] = 2
     outdict['h'] = {i : 1 for i in range(1, outdict['V'] + 1)}
     outdict['p'] = {i : 1 for i in range(1, outdict['V'] + 1)}
     outdict['demand'] = {i : 1 for i in range(1, outdict['V'] + 1)}
@@ -68,7 +68,8 @@ class MVRPD(Instance):
         self.q[0] = 0
         self.positions = dictInst['positions']
         self.release = dictInst['release']
-        self.C = [ i for i in range(1, int(self.V / 2))]
+        #self.C = [ i for i in range(1, int(self.V / 2))]
+        self.C = []
         self.dueDates = dictInst['duedates']
         self.cost = dictInst['cost']
         self.positions = dictInst['positions']
@@ -524,17 +525,17 @@ def runSeveralMVRPD(instNames, nbhs = ('normal', 'cluster'), timeLimit = 100, in
 if __name__ == '__main__':
 
     #runSeveralMVRPD( [ os.path.join( 'MVRPDInstances' , 'ajs1n25_h_3.dat' ) ], nbhs=('function', 'cluster') )
-    inst1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs1n25_h_3.dat' ) )
+    inst1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs5n25_h_3.dat' ) )
     """model = inst1.createInstance()
     print(model.getObjective())"""
     """print(inst1.V)
     print(inst1.m)"""
     
-    """inst1.run(
+    inst1.run(
         outImportedNeighborhoods='separated',
         writeResult=False,
         outVerbose=True,
         outCallback = 'pure'
-    )"""
+    )
     #inst1.visualizeRes()
     
