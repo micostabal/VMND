@@ -23,9 +23,10 @@ MVRPDinst = [
     os.path.join( 'MVRPDInstances' , 'ajs4n100_l_6.dat' )
 ]
 OISRCinst = [
+    os.path.join('OISRCInstances', 'instance_20_2_200_1.oisrc'),
+    os.path.join('OISRCInstances', 'instance_20_2_190_1.oisrc'),
     os.path.join('OISRCInstances', 'instance_20_4_200_1.oisrc'),
-    os.path.join('OISRCInstances', 'instance_20_4_190_1.oisrc'),
-    os.path.join('OISRCInstances', 'instance_15_2_170_1.oisrc')
+    os.path.join('OISRCInstances', 'instance_20_4_190_1.oisrc')
 ]
 
 # Easy instances, just for testing purposes.
