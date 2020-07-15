@@ -59,7 +59,7 @@ runSeveralOISRC(
     timeLimit = elapsedTime
 )
 
-# 2.- MVRPD
+"""# 2.- MVRPD
 runSeveralMVRPD(
     MVRPDinst,
     nbhs = ('separated', 'function'),
@@ -67,15 +67,7 @@ runSeveralMVRPD(
     includePure = True
 )
 
-# 3.- IRP
-runSeveralIRP(
-    IRPinst,
-    nbhs = ('separated', 'function'),
-    timeLimit = elapsedTime,
-    includePure = True
-)
-
-# 4.- IRPCS
+# 3.- IRPCS
 runSeveralIRPCS(
     IRPCSinst,
     nbhs = ('separated', 'function'),
@@ -85,5 +77,13 @@ runSeveralIRPCS(
     outKtrunc = 12,
     includePure = True
 )
+
+# 4.- IRP
+runSeveralIRP(
+    IRPinst,
+    nbhs = ('separated', 'function'),
+    timeLimit = elapsedTime,
+    includePure = True
+)"""
 
 if __name__ == '__main__': pass
