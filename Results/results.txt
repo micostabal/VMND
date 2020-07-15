@@ -1,6 +1,0 @@
-abs3n10_2.dat ,RUNTIME : 0.524, SUBTOUR : CORRECT-separated---MIPGAP: 0.0--
-abs3n10_2.dat ,RUNTIME : 1.877, SUBTOUR : CORRECT-function---MIPGAP: 0.0--
-abs3n10_2.dat ,RUNTIME : 0.113, SUBTOUR : CORRECT--pureB&C----MIPGAP: 0.0--
-abs4n10_3.dat ,RUNTIME : 2.927, SUBTOUR : CORRECT-separated---MIPGAP: 0.0--
-abs4n10_3.dat ,RUNTIME : 3.538, SUBTOUR : CORRECT-function---MIPGAP: 0.0--
-abs4n10_3.dat ,RUNTIME : 0.226, SUBTOUR : CORRECT--pureB&C----MIPGAP: 0.0--
