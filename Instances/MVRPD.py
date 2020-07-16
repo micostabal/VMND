@@ -21,7 +21,7 @@ def loadMVRPD(path):
     outdict['V'] = int(lines[0][0]) - 1
     outdict['H'] = int(lines[0][1])
     outdict['Q'] = int(lines[0][2])
-    outdict['m'] = 2
+    outdict['m'] = 1
     outdict['h'] = {i : 1 for i in range(1, outdict['V'] + 1)}
     outdict['p'] = {i : 1 for i in range(1, outdict['V'] + 1)}
     outdict['demand'] = {i : 1 for i in range(1, outdict['V'] + 1)}
@@ -44,9 +44,9 @@ def loadMVRPD(path):
 
     outdict['cost'] = np.zeros(shape = (outdict['V'] + 1, outdict['V'] + 1))
 
-    for i in range(0, outdict['V'] + 1):
-        for j in range(i + 1, outdict['V'] + 1):
-            outdict['cost'][i][j] = np.linalg.norm( np.array([outdict['positions'][i][0], outdict['positions'][i][1]]) - 
+    for i in range(outdict['V'] + 1):
+        for j in range(outdict['V'] + 1):
+            outdict['cost'][i][j] = np.linalg.norm( np.array([outdict['positions'][i][0], outdict['positions'][i][1] ]) - 
                                             np.array([outdict['positions'][j][0], outdict['positions'][j][1]]) )
     return outdict
 
@@ -74,6 +74,7 @@ class MVRPD(Instance):
         self.cost = dictInst['cost']
         self.positions = dictInst['positions']
         self.resultVars = None
+        self.vals = None
 
     def createInstance(self):
         model = Model()
@@ -96,11 +97,11 @@ class MVRPD(Instance):
          for i in range(self.V + 1) for j in range(self.V + 1) if i != j )
 
         #Term 1.2 : Objective Function: Inventory holding cost for clients visited during the planning horizon.
-        obj += quicksum( self.h[i] * quicksum( (t - self.release[i] ) * quicksum( modelVars['x_{}_{}_{}'.format(i, j, t)]
-          for j in range(self.V + 1) if i != j ) for t in range( self.release[i] , self.H + 1 ) ) for i in range(1, self.V + 1) )
+        obj += quicksum( self.q[i] * self.h[i] * (t - self.release[i]) * modelVars['x_{}_{}_{}'.format(i, j, t)]
+         for j in range(self.V + 1) for i in range(1, self.V + 1) for t in range( self.release[i] , self.H + 1 )  if i != j )
 
         #Term 1.3 : Objective Function: Inventory holding cost and penalty for postponed customers.
-        obj += quicksum( (self.h[i] * (self.H - self.release[i] ) + self.p[i]) *
+        obj += quicksum( ( self.q[i] * self.h[i] * (self.H - self.release[i] ) + self.p[i]) *
          (1 - quicksum( modelVars['x_{}_{}_{}'.format(i, j, t)] for j in range(self.V + 1)
          for t in range( self.release[i] , self.H + 1 ) if j != i ) ) for i in self.C )
         
@@ -468,12 +469,43 @@ class MVRPD(Instance):
             file.write(line)
             file.close()
 
-        self.resultVars = {keyOpMVRPD(var.varName) : var.x for var in modelOut.getVars() if var.x > 0 }
+        self.resultVars = {keyOpMVRPD(var.varName) : var.x for var in modelOut.getVars() if var.x > 0}
+
+
+        self.vals ={var : modelOut._vars[var].x for var in modelOut._vars}
+
+    
         return modelOut
 
     def analyzeRes(self):
-        # Not built.
-        pass
+        routingCosts = 0
+        holdingCosts = 0
+        penaltyCosts = 0
+
+        for t in range(1, self.H + 1):
+            for i in range(self.V + 1):
+                for j in range(self.V + 1):
+                    if i != j:
+                        routingCosts += self.vals['x_{}_{}_{}'.format(i, j, t)] * self.cost[i][j]
+
+        for i in range(1, self.V + 1):
+            inside1 = 0
+            for t in range(self.release[i], self.H + 1):
+                inside1 += sum([self.vals['x_{}_{}_{}'.format(i, j, t)] for j in range(self.V + 1) if i != j]) * (t - self.release[i])
+            
+            holdingCosts += self.q[i] * self.h[i] * inside1
+    
+        for i in self.C:
+            firstTerm = ( self.q[i] * self.h[i] * (self.H - self.release[i]) + self.p[i])
+            secondTerm = 1 - sum([ self.vals['x_{}_{}_{}'.format(i, j, t)]
+             for j in range(self.V + 1) for t in range(self.release[i], self.H + 1) if i != j])
+            penaltyCosts += firstTerm * secondTerm
+
+
+        print('Routing Costs : {}'.format(routingCosts))
+        print('Holding Costs : {}'.format(holdingCosts))
+        print('Penalty Costs : {}'.format(penaltyCosts))
+        print('Total Objective : {}'.format( routingCosts + holdingCosts + penaltyCosts ))
 
     def visualizeRes(self):
         if self.resultVars is None:
@@ -524,18 +556,24 @@ def runSeveralMVRPD(instNames, nbhs = ('normal', 'cluster'), timeLimit = 100, in
 
 if __name__ == '__main__':
 
-    #runSeveralMVRPD( [ os.path.join( 'MVRPDInstances' , 'ajs1n25_h_3.dat' ) ], nbhs=('function', 'cluster') )
-    inst1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs5n25_h_3.dat' ) )
-    """model = inst1.createInstance()
-    print(model.getObjective())"""
-    """print(inst1.V)
-    print(inst1.m)"""
+    inst1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs1n25_h_3.dat' ) )
     
+    """print(inst1.V)
+    print(inst1.H)
+    print(inst1.m)
+    for i in range(1, inst1.V + 1):
+        print(i, inst1.release[i], inst1.dueDates[i])
+    print(inst1.Q)
+    print(sum(inst1.q.values())/4)"""
+
+    #inst1.createInstance()
+
     inst1.run(
-        outImportedNeighborhoods='separated',
+        outImportedNeighborhoods='function',
         writeResult=False,
         outVerbose=True,
-        outCallback = 'pure'
+        outCallback = 'pure',
+        outTimeLimitSeconds= 10
     )
-    #inst1.visualizeRes()
-    
+    inst1.analyzeRes()
+
