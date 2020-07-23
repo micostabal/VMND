@@ -28,6 +28,7 @@ def loadMVRPD(path):
     outdict['release'] = {i : 1 for i in range(1, outdict['V'] + 1)}
     outdict['duedates'] = {i : 1 for i in range(1, outdict['V'] + 1)}
     outdict['positions'] = np.zeros(shape = (outdict['V'] + 1, 2))
+    outdict['C'] = []
     
     for ind, i in enumerate(lines[1:]):
         outdict['positions'][ind][0] = float(i[1])
@@ -38,9 +39,13 @@ def loadMVRPD(path):
             outdict['h'][ind] = float(i[4])
             outdict['p'][ind] = round(10 * outdict['h'][ind], 1)
             
-            outdict['duedates'][ind] = int(i[5])
-            outdict['release'][ind] = int(max(1 , outdict['duedates'][ind] - 2))
+            #outdict['duedates'][ind] = int(i[5])
+            #outdict['release'][ind] = int(max(1 , outdict['duedates'][ind] - 2))
 
+            outdict['release'][ind] = int(i[5])
+            outdict['duedates'][ind] = int(min(outdict['H'] , outdict['release'][ind] + 2))
+            if outdict['release'][ind] + 2 > outdict['H']:
+                outdict['C'].append(ind)
 
     outdict['cost'] = np.zeros(shape = (outdict['V'] + 1, outdict['V'] + 1))
 
@@ -68,8 +73,7 @@ class MVRPD(Instance):
         self.q[0] = 0
         self.positions = dictInst['positions']
         self.release = dictInst['release']
-        #self.C = [ i for i in range(1, int(self.V / 2))]
-        self.C = []
+        self.C = dictInst['C']
         self.dueDates = dictInst['duedates']
         self.cost = dictInst['cost']
         self.positions = dictInst['positions']
@@ -101,7 +105,7 @@ class MVRPD(Instance):
          for j in range(self.V + 1) for i in range(1, self.V + 1) for t in range( self.release[i] , self.H + 1 )  if i != j )
 
         #Term 1.3 : Objective Function: Inventory holding cost and penalty for postponed customers.
-        obj += quicksum( ( self.q[i] * self.h[i] * (self.H - self.release[i] ) + self.p[i]) *
+        obj += quicksum( ( self.q[i] * self.h[i] * (self.H - self.release[i] ) + self.q[i] * self.p[i]) *
          (1 - quicksum( modelVars['x_{}_{}_{}'.format(i, j, t)] for j in range(self.V + 1)
          for t in range( self.release[i] , self.H + 1 ) if j != i ) ) for i in self.C )
         
@@ -496,7 +500,7 @@ class MVRPD(Instance):
             holdingCosts += self.q[i] * self.h[i] * inside1
     
         for i in self.C:
-            firstTerm = ( self.q[i] * self.h[i] * (self.H - self.release[i]) + self.p[i])
+            firstTerm = ( self.q[i] * self.h[i] * (self.H - self.release[i]) + self.p[i] * self.q[i])
             secondTerm = 1 - sum([ self.vals['x_{}_{}_{}'.format(i, j, t)]
              for j in range(self.V + 1) for t in range(self.release[i], self.H + 1) if i != j])
             penaltyCosts += firstTerm * secondTerm
@@ -553,27 +557,15 @@ def runSeveralMVRPD(instNames, nbhs = ('normal', 'cluster'), timeLimit = 100, in
                 writeResult=True
             )
 
-
 if __name__ == '__main__':
 
-    inst1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs1n25_h_3.dat' ) )
+    inst1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs1n50_h_6.dat' ) )
     
-    """print(inst1.V)
-    print(inst1.H)
-    print(inst1.m)
-    for i in range(1, inst1.V + 1):
-        print(i, inst1.release[i], inst1.dueDates[i])
-    print(inst1.Q)
-    print(sum(inst1.q.values())/4)"""
-
-    #inst1.createInstance()
-
     inst1.run(
         outImportedNeighborhoods='function',
         writeResult=False,
         outVerbose=True,
-        outCallback = 'pure',
-        outTimeLimitSeconds= 10
+        outCallback = 'vmnd',
+        outTimeLimitSeconds= 100
     )
     inst1.analyzeRes()
-

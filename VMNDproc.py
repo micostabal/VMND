@@ -105,6 +105,9 @@ def VMNDCallback(model, where):
     # An integer solution has been found.
     if where == GRB.Callback.MIPSOL and model._incFound:
         # We check whether a new incumbent has been found.
+        
+        print(model.cbGet(GRB.Callback.MIPSOL_OBJBST), model._IncBeforeLS)
+
         if model.cbGet(GRB.Callback.MIPSOL_OBJBST) - model._IncBeforeLS <= -0.01:
             
             # Time is restricted.
@@ -256,7 +259,7 @@ def localSearch(model):
 
                     model._LSNeighborhoods._depth = act_depth
                     if model._verbose:
-                        print( 'MIP Incumbent: {} --'.format(model._BCLastObj) + 'Local Search Objective: {}'.format(locModel.objVal))
+                        print( 'MIP Incumbent: {} --'.format(model._IncBeforeLS) + 'Local Search Objective: {}'.format(locModel.objVal))
                         print('--------- Changed {} variables from {}, a  {}% ----------'.format(
                          distinct, totalvars, round(100 * distinct/totalvars, 4)))
             else:
@@ -357,7 +360,7 @@ def solver(
     model._funLazy = funlazy
     model._minBCTime = minBCTime
     model._BCLastStart = time.time()
-    model._BCLastObj = 0
+    model._BCLastObj = None
     model._BCVals = None
     model._BCHeuristicCounter = 0
     model._BCimproved = False
@@ -426,6 +429,6 @@ if __name__ == '__main__':
         callback = 'vmnd',
         alpha = 1,
         minBCTime= 5,
-        timeLimitSeconds= None
+        timeLimitSeconds= 100
     )
     

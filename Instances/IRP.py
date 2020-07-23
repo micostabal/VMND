@@ -86,7 +86,7 @@ class IRP(Instance):
         self.h = dictinstance['h']
         self.C = dictinstance['C']
         self.positions = dictinstance['positions']
-        self.K = 12
+        self.K = 3
         self.dist = dictinstance['dist']
         self.resultVars = None
 
@@ -127,7 +127,7 @@ class IRP(Instance):
             modelVars[ 'I_{}_{}'.format(i, 0) ] = model.addVar(lb = self.I0[i], ub = self.I0[i], vtype = GRB.CONTINUOUS, name='I_{}_{}'.format(i, 0))
 
         # Term a) Objective Function
-        obj = quicksum(self.h[0] * modelVars['I_{}_{}'.format(0, t)] for t in range(1, self.H + 1)) +\
+        obj = quicksum( self.h[0] * modelVars['I_{}_{}'.format(0, t)] for t in range(1, self.H + 1)) +\
             quicksum( self.h[i] * modelVars['I_{}_{}'.format(i, t)]  for t in range(1, self.H + 1) for i in range(1, self.n + 1)) +\
             quicksum( modelVars['y_{}_{}_{}_{}'.format(i, j, k, t)] * self.dist[i, j] * 0 for k in range(1, self.K + 1) for i in range(self.n + 1) for j in range(self.n + 1)\
             for t in range(1, self.H + 1) for i in range(self.n + 1) if i < j )
@@ -469,12 +469,8 @@ def runSeveralIRP(instNames, nbhs = ('function', 'cluster'), timeLimit = 100, in
 
 
 if __name__ == '__main__':
-    """runSeveralIRP(
-        [ 'abs1n5_3.dat', 'abs1n15_4.dat' ],
-        timeLimit=100,
-        nbhs= ('normal', 'cluster') )"""
 
-    inst1 = IRP('abs2n25_4.dat')
-    inst1.run(writeResult = False, outImportedNeighborhoods = 'cluster')
+    inst1 = IRP('abs2n50_4.dat')
+    inst1.run(writeResult = False, outImportedNeighborhoods = 'function')
 
     print('----------------- Program reached End of Execution Succesfully -----------------')

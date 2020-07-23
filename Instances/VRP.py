@@ -33,7 +33,6 @@ def loadVRP(fileLines):
         outinstance['demands'][ind] = int(fileLines[linenumber].split(' ')[1])
     return outinstance
 
-
 class VRP(Instance):
 
     def __init__(self, path):
@@ -74,7 +73,7 @@ class VRP(Instance):
         model._vars = modelVars
 
         # Declaration of Objective Function.
-        obj = quicksum( model._vars['y_{}_{}_{}'.format(i, j, k)]
+        obj = quicksum( model._vars['y_{}_{}_{}'.format(i, j, k)] * self.cost[i][j]
          for k in range(1, self.trucks + 1) for i in range(self.totalNodes) for j in range(self.totalNodes) if i < j )
 
         # Term 1: Truck capacity constraint.
@@ -95,7 +94,7 @@ class VRP(Instance):
 
         # Symmetry Breaking Constrints
 
-        """model.addConstrs( modelVars['y_{}_{}_{}'.format(i, j, k)] <= modelVars['z_{}_{}'.format(i, k)]
+        model.addConstrs( modelVars['y_{}_{}_{}'.format(i, j, k)] <= modelVars['z_{}_{}'.format(i, k)]
          for i in range(self.totalNodes) for j in range(self.totalNodes) for k in range(1, self.trucks + 1) if i < j )
 
         # Term 29: Symmetry Breaking Constraint
@@ -122,7 +121,7 @@ class VRP(Instance):
 
         model.addConstrs( modelVars['z_{}_{}'.format(i, k)] <= quicksum( modelVars['z_{}_{}'.format(j, k - 1)]
          for j in range(self.totalNodes) if j < i )
-         for i in range(1, self.totalNodes) for k in range(2, self.trucks + 1) )"""
+         for i in range(1, self.totalNodes) for k in range(2, self.trucks + 1) )
 
         # Objective Function is set
         model.setObjective(obj, GRB.MINIMIZE)
@@ -374,9 +373,14 @@ def runSeveralVRP(instNames, nbhs = ('function', 'cluster'), timeLimit = 100):
 if __name__ == '__main__':
     #runSeveralVRP( [os.path.join('VRPInstances', 'A-n33-k5.vrp')], nbhs = ['cluster', 'function'], timeLimit=100 )
 
-    inst1 = VRP( path = os.path.join('VRPInstances', 'A-n33-k5.vrp') )
+    inst1 = VRP( path = os.path.join('VRPInstances', 'A-n32-k5.vrp') )
+    #print(len(inst1.demands))
+    #print(inst1.positions)
+    
     inst1.run(
         outImportedNeighborhoods= 'function',
         writeResult = False,
-        outVerbose = True
+        outVerbose = True,
+        outCallback= 'vmnd'
     )
+    inst1.visualizeRes()

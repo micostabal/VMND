@@ -5,6 +5,12 @@ from MVRPD import runSeveralMVRPD
 from VRP import runSeveralVRP
 from OISRC import runSeveralOISRC
 
+def checkfiles(listFiles):
+    for link in listFiles:
+        if not os.path.isfile(link):
+            return False
+    return True
+
 
 # Official Experiment
 IRPinst = [
@@ -12,6 +18,7 @@ IRPinst = [
     'abs4n100_3.dat' ,
     'abs9n200_2.dat'
 ]
+
 IRPCSinst = [ 
     os.path.join( 'IRPCSInstances', 'Inst1.txt'),
     os.path.join( 'IRPCSInstances', 'Inst2.txt'),
@@ -54,11 +61,11 @@ elapsedTime = 7205
 #elapsedTime = 50
 
 
-# 1.- OISRC
+"""# 1.- OISRC
 runSeveralOISRC(
     OISRCinst,
     timeLimit = elapsedTime
-)
+)"""
 
 """# 2.- MVRPD
 runSeveralMVRPD(
@@ -87,4 +94,5 @@ runSeveralIRP(
     includePure = True
 )"""
 
-if __name__ == '__main__': pass
+if __name__ == '__main__':
+    print(checkfiles(IRPCSinst + MVRPDinst + OISRCinst))
