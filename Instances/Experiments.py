@@ -1,4 +1,5 @@
 import os
+import sys
 from IRP import runSeveralIRP
 from IRPCS import runSeveralIRPCS
 from MVRPD import runSeveralMVRPD
@@ -78,5 +79,7 @@ class Experiment:
 
 
 if __name__ == '__main__':
-    fileName = string(input('Which test do you want to Execute?'))
-    firstExperiment = Experiment(pathFile = os.path.join(os.path.pardir, 'Experiments', 'exptest.txt'))
+    arguments = sys.argv
+    if len(arguments) > 1:
+        firstExperiment = Experiment(pathFile = os.path.join(os.path.pardir, 'Experiments', 'exptest.txt'))
+        firstExperiment.runSeveral()
