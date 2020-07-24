@@ -1,4 +1,4 @@
 # VMND
-A Python Implementation of the Variable MIP Neighborhood Descent Heuristic. This work is based on [Larrain et al](https://dl.acm.org/doi/10.1016/j.cor.2017.03.010). This MIP heuristic is implemented in Gurobipy and can significantly reduce gap in many routing and integer problems. Routing-type problems are those in which the best performances have been already achieved and several have been implemented here, nevertheless this library and method can be used for any MIP!
+A Python Implementation of the Variable MIP Neighborhood Descent Heuristic. This repository is based on the work of [Larrain et al](https://dl.acm.org/doi/10.1016/j.cor.2017.03.010). This MIP heuristic is implemented in Gurobipy and can significantly improve performance in many routing and integer problems. Several Routing-type problems have been implemented here, nevertheless this library and method can be used for virtually every MIP!
 <br>
-See [Wiki](https://github.com/micostabal/VMND/wiki) for User's Manual and more info!
+See the [Wiki](https://github.com/micostabal/VMND/wiki) for more info!
