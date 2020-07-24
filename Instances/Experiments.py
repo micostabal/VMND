@@ -78,4 +78,5 @@ class Experiment:
 
 
 if __name__ == '__main__':
+    fileName = string(input('Which test do you want to Execute?'))
     firstExperiment = Experiment(pathFile = os.path.join(os.path.pardir, 'Experiments', 'exptest.txt'))
