@@ -1,18 +1,17 @@
-
 ##### The imports depend on which folder is the file located #####
 import sys
 import os
 sys.path.append(os.path.pardir)
+sys.path.append( os.path.join(os.path.pardir, 'Instances'))
+import MVRPD as MVRPD
 from sklearn.neighbors import NearestNeighbors
-from MVRPD import MVRPD
 from Neighborhood import Neighborhoods
 from VMNDproc import solver
-
 
 ##### The loading of the model and creation of the mps file #####
  
 # The instance is loaded from the MPS File
-inst1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs5n25_h_3.dat' ) )
+inst1 = MVRPD.MVRPD(path = os.path.join( os.path.pardir, 'Instances', 'MVRPDInstances' , 'ajs1n25_h_3.dat' ) )
 
 # The model is created and written as a mps file in the folder MIPLIB
 inst1.exportMPS()
@@ -92,8 +91,6 @@ modelOutput = solver(
     minBCTime = 0,
     timeLimitSeconds= 300
 )
-
-
 
 
 ##### Other Features #####

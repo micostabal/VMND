@@ -14,6 +14,9 @@ import matplotlib.pyplot as plt
 from Instance import Instance
 from Functions import keyOpTSP, genClusterNeighborhoods
 
+rd.seed(2**10 + 1)
+
+
 class TSP(Instance):
 
     def __init__(self, n, nbsRandom = True):

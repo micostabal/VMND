@@ -79,6 +79,8 @@ class Experiment:
 
 
 if __name__ == '__main__':
+
+    
     arguments = sys.argv
     if len(arguments) > 1:
         fileName = arguments[1]
