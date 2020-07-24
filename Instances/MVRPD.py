@@ -559,13 +559,13 @@ def runSeveralMVRPD(instNames, nbhs = ('normal', 'cluster'), timeLimit = 100, in
 
 if __name__ == '__main__':
 
-    inst1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs1n50_h_6.dat' ) )
-    
+    inst1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs1n25_h_3.dat' ) )
+    inst1.Q = 942
     inst1.run(
         outImportedNeighborhoods='function',
         writeResult=False,
         outVerbose=True,
-        outCallback = 'vmnd',
-        outTimeLimitSeconds= 100
+        outCallback = 'pure',
+        outTimeLimitSeconds= None
     )
     inst1.analyzeRes()

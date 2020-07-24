@@ -13,7 +13,7 @@ from VMNDproc import solver
 from Instance import Instance
 import time
 
-def loadIRP(path='abs1n20_2.dat', sep='\t'):
+def loadIRP(path=os.path.join('IRPInstances', 'abs1n20_2.dat'), sep='\t'):
     output = {
     'n': 0,
     'H': 0,
@@ -21,7 +21,7 @@ def loadIRP(path='abs1n20_2.dat', sep='\t'):
     }
 
     # The file is opened and parsed line by line
-    file = open(os.path.join('IRPInstances', path), 'r')
+    file = open(path, 'r')
     listLines = list(map(lambda x: x.strip('\n'), file.readlines()))
 
     # First line contains n, h and C
@@ -73,9 +73,9 @@ def loadIRP(path='abs1n20_2.dat', sep='\t'):
 
 class IRP(Instance):
 
-    def __init__(self, path = 'abs1n20_2.dat'):
+    def __init__(self, path = os.path.join('IRPInstances', 'abs1n20_2.dat')):
         super().__init__()
-        self.name = path
+        self.name = os.path.basename(path).rstrip('.dat')
         self.pathMPS = None
         dictinstance = loadIRP(path)
         self.n = dictinstance['n']
@@ -470,7 +470,11 @@ def runSeveralIRP(instNames, nbhs = ('function', 'cluster'), timeLimit = 100, in
 
 if __name__ == '__main__':
 
-    inst1 = IRP('abs2n50_4.dat')
-    inst1.run(writeResult = False, outImportedNeighborhoods = 'function')
+    inst1 = IRP(os.path.join('IRPInstances', 'abs2n50_4.dat'))
+
+    inst1.run(
+        writeResult = False,
+        outImportedNeighborhoods = 'function',
+        outCallback='pure')
 
     print('----------------- Program reached End of Execution Succesfully -----------------')

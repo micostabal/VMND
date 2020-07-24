@@ -13,6 +13,8 @@ Intstances/__pycache__
 
 # Results
 !Results/results.txt
+!Experiments/exptest.txt
+!Experiments/testbed1.txt
 
 # MIPLIB Instances
 !binkar10_1.mps

@@ -5,94 +5,77 @@ from MVRPD import runSeveralMVRPD
 from VRP import runSeveralVRP
 from OISRC import runSeveralOISRC
 
+createdMIP = ['IRP', 'IRPCS', 'MVRPD', 'OISRC', 'VRP']
+
 def checkfiles(listFiles):
     for link in listFiles:
         if not os.path.isfile(link):
             return False
     return True
 
+def loadExperiment(path = os.path.join(os.path.pardir, 'Experiments', 'exptest.txt')):
+    paths = {prob : [] for prob in createdMIP}
+    lines = list( map( lambda x: x.rstrip('\n'), filter(lambda y : y != '\n' and y != '', open(path, 'r').readlines() ) ) )
 
-# Official Experiment
-IRPinst = [
-    'abs3n100_2.dat',
-    'abs4n100_3.dat' ,
-    'abs9n200_2.dat'
-]
+    for line in lines:
+        elements = line.split(' ')
+        probType = elements[0]
+        if probType not in createdMIP:
+            print('Problem Name is not correct')
+            continue
+        
+        thisPath = os.path.join(*elements[1:])
 
-IRPCSinst = [ 
-    os.path.join( 'IRPCSInstances', 'Inst1.txt'),
-    os.path.join( 'IRPCSInstances', 'Inst2.txt'),
-    os.path.join( 'IRPCSInstances', 'Inst3.txt')
-]
-MVRPDinst = [ 
-    os.path.join( 'MVRPDInstances' , 'ajs1n100_l_6.dat' ),
-    os.path.join( 'MVRPDInstances' , 'ajs5n100_h_6.dat' ),
-    os.path.join( 'MVRPDInstances' , 'ajs4n100_l_6.dat' )
-]
-OISRCinst = [
-    os.path.join('OISRCInstances', 'instance_20_2_200_1.oisrc'),
-    os.path.join('OISRCInstances', 'instance_20_2_190_1.oisrc'),
-    os.path.join('OISRCInstances', 'instance_20_4_200_1.oisrc'),
-    os.path.join('OISRCInstances', 'instance_20_4_190_1.oisrc')
-]
-
-# Easy instances, just for testing purposes.
-    
-"""IRPinst = [ 
-    'abs1n5_1.dat',
-    'abs2n10_3.dat'
-]
-IRPCSinst = [ 
-    os.path.join( 'IRPCSInstances', 'Inst1.txt'),
-    os.path.join( 'IRPCSInstances', 'Inst2.txt')
-]
-MVRPDinst = [ 
-    os.path.join( 'MVRPDInstances' , 'ajs1n25_h_3.dat' ),
-    os.path.join( 'MVRPDInstances' , 'ajs1n25_l_3.dat' )
-]
-OISRCinst = [
-    os.path.join('OISRCInstances', 'instance_4_2_100_1.oisrc')
-]"""
+        if not os.path.exists(thisPath):
+            print('Path does not exist')
+            continue
+        
+        paths[probType].append(thisPath)
+    return paths
 
 
-# Instances are run. Results saved in Results/results.txt
-elapsedTime = 7205
+class Experiment:
 
-#elapsedTime = 50
+    def __init__(self, pathFile, totalTime = 7200):
+        self.pathInstances = loadExperiment(pathFile)
+        self.totalTime = totalTime
 
+    def runSeveral(self):
+        for prob in self.pathInstances.keys():
+            if prob == 'IRP':
+                runSeveralIRP(
+                    self.pathInstances[prob],
+                    nbhs = ('separated', 'function'),
+                    timeLimit = self.totalTime,
+                    includePure = True
+                )
+            elif prob == 'IRPCS':
+                runSeveralIRPCS(
+                    self.pathInstances[prob],
+                    nbhs = ('separated', 'function'),
+                    timeLimit = self.totalTime,
+                    outVtrunc = 70,
+                    outHtrunc = 3,
+                    outKtrunc = 12,
+                    includePure = True
+                )
+            elif prob == 'VRP':
+                print('VRP is not yet implemented')
+            elif prob == 'OISRC':
+                runSeveralOISRC(
+                    self.pathInstances[prob],
+                    timeLimit = self.totalTime
+                )
+            elif prob == 'MVRPD':
+                runSeveralMVRPD(
+                    self.pathInstances[prob],
+                    nbhs = ('separated', 'function'),
+                    timeLimit = self.totalTime,
+                    includePure = True
+                )
+            else:
+                print('Problem name not in the list')
 
-"""# 1.- OISRC
-runSeveralOISRC(
-    OISRCinst,
-    timeLimit = elapsedTime
-)"""
-
-"""# 2.- MVRPD
-runSeveralMVRPD(
-    MVRPDinst,
-    nbhs = ('separated', 'function'),
-    timeLimit = elapsedTime,
-    includePure = True
-)
-
-# 3.- IRPCS
-runSeveralIRPCS(
-    IRPCSinst,
-    nbhs = ('separated', 'function'),
-    timeLimit = elapsedTime,
-    outVtrunc = 70,
-    outHtrunc = 3,
-    outKtrunc = 12,
-    includePure = True
-)
-
-# 4.- IRP
-runSeveralIRP(
-    IRPinst,
-    nbhs = ('separated', 'function'),
-    timeLimit = elapsedTime,
-    includePure = True
-)"""
 
 if __name__ == '__main__':
-    print(checkfiles(IRPCSinst + MVRPDinst + OISRCinst))
+    firstExperiment = Experiment(pathFile = os.path.join(os.path.pardir, 'Experiments', 'exptest.txt'))

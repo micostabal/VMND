@@ -106,7 +106,7 @@ def VMNDCallback(model, where):
     if where == GRB.Callback.MIPSOL and model._incFound:
         # We check whether a new incumbent has been found.
         
-        print(model.cbGet(GRB.Callback.MIPSOL_OBJBST), model._IncBeforeLS)
+        #print(model.cbGet(GRB.Callback.MIPSOL_OBJBST), model._IncBeforeLS)
 
         if model.cbGet(GRB.Callback.MIPSOL_OBJBST) - model._IncBeforeLS <= -0.01:
             
