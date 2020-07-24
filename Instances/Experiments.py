@@ -22,13 +22,13 @@ def loadExperiment(path = os.path.join(os.path.pardir, 'Experiments', 'exptest.t
         elements = line.split(' ')
         probType = elements[0]
         if probType not in createdMIP:
-            print('Problem Name is not correct')
+            print('Problem Name is not correct: {}'.format(probType))
             continue
         
         thisPath = os.path.join(*elements[1:])
 
         if not os.path.exists(thisPath):
-            print('Path does not exist')
+            print('Path does not exist: {}'.format(thisPath))
             continue
         
         paths[probType].append(thisPath)
@@ -81,5 +81,7 @@ class Experiment:
 if __name__ == '__main__':
     arguments = sys.argv
     if len(arguments) > 1:
-        firstExperiment = Experiment(pathFile = os.path.join(os.path.pardir, 'Experiments', 'exptest.txt'))
+        fileName = arguments[1]
+        print(fileName)
+        firstExperiment = Experiment(pathFile = os.path.join(os.path.pardir, 'Experiments', fileName))
         firstExperiment.runSeveral()

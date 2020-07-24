@@ -8,6 +8,6 @@ MVRPD MVRPDInstances ajs1n100_l_6.dat
 MVRPD MVRPDInstances ajs5n100_h_6.dat
 MVRPD MVRPDInstances ajs4n100_l_6.dat
 OISRC OISRCInstances instance_20_2_200_1.oisrc
-OISRCInstances instance_20_2_190_1.oisrc
+OISRC OISRCInstances instance_20_2_190_1.oisrc
 OISRC OISRCInstances instance_20_4_200_1.oisrc
 OISRC OISRCInstances instance_20_4_190_1.oisrc
