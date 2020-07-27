@@ -101,5 +101,12 @@ solver(
         timeLimitSeconds= None
 )
 
+# Of course this method is already implemented it suffices to execute run method with the desired parameters like this:
+
+tspInst.run()
+
+# Finally a nice matplotlib visualization can be performed with the 
+tspInst.visualizeRes()
+
 
 if __name__ == '__main__': pass

@@ -158,7 +158,7 @@ class TSP(Instance):
                         importNeighborhoods= True,
                         importedNeighborhoods= self.genNeighborhoods( varCluster=True ),
                         funTest = self.genTestFunction(),
-                        alpha = 2,
+                        alpha = 1,
                         callback = 'vmnd',
                         verbose = True
                 )
