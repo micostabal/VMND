@@ -1,6 +1,3 @@
-IRP IRPInstances abs3n100_2.dat
-IRP IRPInstances abs4n100_3.dat
-IRP IRPInstances abs9n200_2.dat
 IRPCS IRPCSInstances Inst1.txt
 IRPCS IRPCSInstances Inst2.txt
 IRPCS IRPCSInstances Inst3.txt
