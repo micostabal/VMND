@@ -13,6 +13,12 @@ from Neighborhood import Neighborhoods
 from Functions import keyOpVRP, genClusterNeighborhoods
 from Instance import Instance
 
+def nint(number):
+    if number == 0.5:
+        return 1
+    else:
+        return round(number, 0)
+
 def loadVRP(fileLines):
     outinstance = {}
     nodes, mintrucks = list(map( lambda x : int(x.strip('n').strip('k')), fileLines[0].split(' ')[-1].split('-')[1:] ) )
@@ -52,8 +58,8 @@ class VRP(Instance):
         self.cost = np.zeros(shape = (self.totalNodes, self.totalNodes))
         for j in range(1, self.totalNodes):
             for i in range(j):
-                self.cost[i][j] = np.linalg.norm(np.array([ self.positions[i][0] , self.positions[i][1] ])
-                 - np.array([ self.positions[j][0] , self.positions[j][1] ]))
+                self.cost[i][j] = nint(np.linalg.norm(np.array([ self.positions[i][0] , self.positions[i][1] ])
+                 - np.array([ self.positions[j][0] , self.positions[j][1] ])) )
 
     def createInstance(self):
 
@@ -342,7 +348,24 @@ class VRP(Instance):
 
     def analyzeRes(self): pass
 
-    def visualizeRes(self): pass
+    def visualizeRes(self):
+        if self.resultVars is None:
+            print('The model must be run first before visualizing results! Execute first the run method')
+            return 0
+        outRoutes = {key : self.resultVars[key] for key in self.resultVars.keys() if self.resultVars[key] >= 0.99
+         and key[0] == 'y'}
+        for k in range(1, self.trucks + 1):
+            edges = [(key[1], key[2]) for key in outRoutes.keys() if key[3] == k]
+            print(edges)
+            if len(edges) == 0:
+                continue
+            pos =  {i : (self.positions[i][0], self.positions[i][1]) for i in range(self.retailers + 1) }
+
+            G_1 = nx.Graph()
+            G_1.add_edges_from(edges)
+
+            nx.draw(G_1, pos, edge_labels = True, with_labels=True, font_weight='bold')
+            plt.show()
 
 
 def runSeveralVRP(instNames, nbhs = ('function', 'cluster'), timeLimit = 100):
@@ -371,16 +394,19 @@ def runSeveralVRP(instNames, nbhs = ('function', 'cluster'), timeLimit = 100):
 
 
 if __name__ == '__main__':
-    #runSeveralVRP( [os.path.join('VRPInstances', 'A-n33-k5.vrp')], nbhs = ['cluster', 'function'], timeLimit=100 )
 
     inst1 = VRP( path = os.path.join('VRPInstances', 'A-n32-k5.vrp') )
-    #print(len(inst1.demands))
-    #print(inst1.positions)
     
     inst1.run(
         outImportedNeighborhoods= 'function',
         writeResult = False,
         outVerbose = True,
-        outCallback= 'vmnd'
+        outCallback= 'vmnd',
+        outMinBCTime= 10,
+        outTimeLimitSeconds= 100
     )
-    inst1.visualizeRes()
+    #inst1.visualizeRes()
+
+    
+
+    

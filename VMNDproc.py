@@ -43,12 +43,16 @@ def VMNDCallback(model, where):
 
     if where == GRB.Callback.MIPSOL:
 
+        # Variables are stored.
         vals = model.cbGetSolution(model._vars)
         model._vals = vals
 
-        # Necessary (subtour) cuts need to be added.
+
+        bestObj = model.cbGet(GRB.Callback.MIPSOL_OBJBST)
+        thisObj = model.cbGet(GRB.Callback.MIPSOL_OBJ)
+        
+        # Necessary LAZY CONSTRAINTS needed.
         if model._addLazy and model._funLazy is not None:
-            
             newLazy = model._funLazy(model._vals)
 
             if len(newLazy) > 0:
@@ -56,6 +60,17 @@ def VMNDCallback(model, where):
                     model.cbLazy( quicksum( model._vars[key] * cut.nonzero[key] for key in cut.nonzero.keys() )
                     , model._senseDict[cut.sense], cut.rhs)
                     model._BCLazyAdded.append(cut)
+
+            else:
+                if bestObj >= thisObj:
+                    model._newBest = True
+                    if model._verbose:
+                        print('-- NEW B&C INCUMBENT FOUND -- INC :{} --'.format(thisObj))
+        else:
+            if bestObj >= thisObj:
+                model._newBest = True
+                if model._verbose:
+                    print('-- NEW B&C INCUMBENT FOUND -- INC :{} --'.format(thisObj))
         
         # Parameter are initialized with the first "Integer" Incumbent.
         if not model._incFound:
@@ -76,6 +91,27 @@ def VMNDCallback(model, where):
                 print('Starting B&C Search')
             # Time starting new B&C phase
             model._BCLastStart = time.time()
+        else:
+            if model._newBest:
+                
+                # Time is restricted.
+                if not model._restrTime:
+                    model._restrTime = True
+                    if model._verbose:
+                        print("Valid B&C improvement, time will be restricted.")
+
+                ## New incumbent is stored inside BCVals
+                v1 = {}
+                for varname in model._vars.keys():
+                    v1[varname] = vals[varname]
+                model._BCVals = v1
+                
+                # If the current depth is not the lowest, it is reset.
+                if model._LSNeighborhoods._depth > model._LSNeighborhoods.lowest:
+                    model._LSNeighborhoods.resetDepth()
+
+                # The varaible newBest si set to False
+                model._newBest = False
     
     # Check B&C time.
     tactBC = (time.time() - model._BCLastStart)
@@ -101,30 +137,6 @@ def VMNDCallback(model, where):
 
                 # We stop suggesting this solution.
                 model._LSImprovedDict = None
-            
-    # An integer solution has been found.
-    if where == GRB.Callback.MIPSOL and model._incFound:
-        # We check whether a new incumbent has been found.
-        
-        #print(model.cbGet(GRB.Callback.MIPSOL_OBJBST), model._IncBeforeLS)
-
-        if model.cbGet(GRB.Callback.MIPSOL_OBJBST) - model._IncBeforeLS <= -0.01:
-            
-            # Time is restricted.
-            if not model._restrTime:
-                model._restrTime = True
-                if model._verbose:
-                    print("Valid B&C improvement, time will be restricted.")
-
-            ## New incumbent is stored inside BCVals
-            v1 = {}
-            for varname in model._vars.keys():
-                v1[varname] = vals[varname]
-            model._BCVals = v1
-            
-            # If the current depth is not the lowest, it is reset.
-            if model._LSNeighborhoods._depth > model._LSNeighborhoods.lowest:
-                model._LSNeighborhoods.resetDepth()
 
     # Timelimit has already ocurred.
     if model._incFound and model._restrTime and tactBC > totalTimeBC and ( where == GRB.Callback.MIPNODE or where == GRB.Callback.MIPSOL ):
@@ -365,6 +377,7 @@ def solver(
     model._BCHeuristicCounter = 0
     model._BCimproved = False
     model._BCLazyAdded = []
+    model._newBest = False
     model._senseDict = {
         '<=' : GRB.LESS_EQUAL,
         '==' : GRB.EQUAL,
@@ -415,9 +428,9 @@ def creator(path):
     return loadMPS(path)
 
 if __name__ == '__main__':
-    path = os.path.join('MIPLIB', 'neos-4387871-tavua.mps')
+    path = os.path.join('MIPLIB', 'neos-4338804-snowy.mps')
 
-    nbhs = varClusterFromMPS(path, numClu = 8, varFilter = None)
+    nbhs = varClusterFromMPS(path, numClu = 10, varFilter = None)
     solver(
         path,
         verbose = True,
@@ -428,7 +441,7 @@ if __name__ == '__main__':
         funTest= None,
         callback = 'vmnd',
         alpha = 1,
-        minBCTime= 5,
-        timeLimitSeconds= 100
+        minBCTime= 10,
+        timeLimitSeconds= 600
     )
     

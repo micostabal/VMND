@@ -209,7 +209,7 @@ def genClusterNeighborhoods(
             incomplete = True
             dLabels[keyVars[ind]] = ind % nClusters
 
-    if verbose:
+    if verbose and incomplete:
         print('------ The key variable choice was incomplete ------')    
 
     if verbose:
@@ -232,48 +232,108 @@ def mps_reader(file_name = os.path.join( 'MIPLIB' , 'abs1n5_1.mps' )):
     for row in open(file_name, "r"):
         yield row
 
+def diffKeys(
+        path = os.path.join("MIPLIB", "SomeInstanceIRPCS15_8_3.mps" ),
+        varFilter = lambda x : x[0] == 'x',
+        verbose = True ):
+    starting_time = time.time()
+    m = read(path)
+    nzs = pd.DataFrame(get_matrix_coos_new(m), columns=['row_idx', 'col_idx', 'name'])
 
-if __name__ == '__main__':
-    #genAffinityMatrix()
-    #gc1 = genClusterNeighborhoods( path = os.path.join( 'MIPLIB' , 'abs1n5_1.mps' ), fNbhs = False)
+    # An undirected affinity graph is created.
+    graph = nx.Graph()
 
-    started = False
-    finished = False
-    varFilter = lambda x: x[0] == 'x'
-    rvar = {}
+    actRow = 0
+    varsInRow = []
+
+    if varFilter == None:
+        varFilter = lambda x : True
+
+    nameVal = {}
+    indexVar = 0
+    for ind, var in enumerate(m.getVars()):
+        nameVal[var.VarName] = ind
     
-    for i in mps_reader(file_name = os.path.join( 'MIPLIB' , 'SomeInstanceIRPCS60_12_3.mps' )):
-        row = i.strip('\n')
-        if row == 'COLUMNS':
-            print('column detected')
-            started = True
-            continue
-        elif row == 'RHS':
-            print('end of rows')
-            finished = True
+    for index, row in nzs.iterrows():
+
+        if int(row.row_idx) == actRow and varFilter(row['name']):
+            varsInRow.append(row['name'])
+        elif int(row.row_idx) != actRow and varFilter(row['name']):
+
+            # We update the edge dictionary:
+            if len(varsInRow) > 1:
+                for n1 in varsInRow:
+                    for n2 in varsInRow:
+                        if n1 < n2:
+                            if not graph.has_edge(nameVal[n1], nameVal[n2]):
+                                graph.add_edge(nameVal[n1], nameVal[n2], weight = 1)
+                            else:
+                                graph[nameVal[n1]][nameVal[n2]]['weight'] += 1
+            
+            # The row and variables list parameters are set back to 0 and empty respectively.
+            actRow = int(row.row_idx)
+            varsInRow = []
+            if verbose:
+                print('Completed {} of total rows.'.format( round( index / len(nzs) , 3) ) )
+
+            """# If is not filtered, we add the variable name to the list.
+            if varFilter(row['name']):
+                varsInRow.append(row['name'])"""
+    
+    if verbose:
+        print('------ Affinity Matrix successfully stored. Elapsed : {} ------'.format( round(time.time() - starting_time , 3) ) )
+
+    print('Time Elapsed: {}'.format(time.time() - starting_time))
+    print('Memory used: {} bytes'.format(sys.getsizeof(graph.edges)))
+    print('#edges: {}'.format(graph.size()))
+    return graph
+
+def previousTest(affMAtrix = False, genCluster = False, newGraph = True):
+    if affMAtrix:
+        genAffinityMatrix()
+    if genCluster:
+        gc1 = genClusterNeighborhoods( path = os.path.join( 'MIPLIB' , 'abs1n5_1.mps' ), fNbhs = False)
+    if newGraph:
+        newGraph = diffKeys(path = os.path.join('MIPLIB', 'ajs1n75_h_6.mps'), varFilter= lambda x : x[0] == 'x',verbose = False)
+
+        started = False
+        finished = False
+        varFilter = lambda x: x[0] == 'x'
+        rvar = {}
         
-        if started and not finished and "'MARKER'" not in row:
-            tupleRow = tuple( filter(lambda x : x != '', i.strip('\n').strip(' ').split(' ') ) )
-            varName = tupleRow[0]
-            constrName = tupleRow[1]
-            if varFilter(varName):
-                if constrName in rvar.keys():
-                    rvar[constrName].append(varName)
-                else:
-                    rvar[constrName] = [varName]
-    
-    print(sys.getsizeof(rvar))
-    keys = tuple(rvar.keys())
-    edges = {}
-    for constr in keys:
-        for v1 in rvar[constr]:
-            for v2 in rvar[constr]:
-                if v1 < v2:
-                    if (v1, v2) in edges.keys():
-                        edges[(v1, v2)] += 1
+        for i in mps_reader(file_name = os.path.join( 'MIPLIB' , 'SomeInstanceIRPCS60_12_3.mps' )):
+            row = i.strip('\n')
+            if row == 'COLUMNS':
+                print('column detected')
+                started = True
+                continue
+            elif row == 'RHS':
+                print('end of rows')
+                finished = True
+            
+            if started and not finished and "'MARKER'" not in row:
+                tupleRow = tuple( filter(lambda x : x != '', i.strip('\n').strip(' ').split(' ') ) )
+                varName = tupleRow[0]
+                constrName = tupleRow[1]
+                if varFilter(varName):
+                    if constrName in rvar.keys():
+                        rvar[constrName].append(varName)
                     else:
-                        edges[(v1, v2)] = 1
-        del rvar[constr]
+                        rvar[constrName] = [varName]
+        
+        print(sys.getsizeof(rvar))
+        keys = tuple(rvar.keys())
+        edges = {}
+        for constr in keys:
+            for v1 in rvar[constr]:
+                for v2 in rvar[constr]:
+                    if v1 < v2:
+                        if (v1, v2) in edges.keys():
+                            edges[(v1, v2)] += 1
+                        else:
+                            edges[(v1, v2)] = 1
+            del rvar[constr]
 
-    print(sys.getsizeof(edges))
+        print(sys.getsizeof(edges))
 
+if __name__ == '__main__': pass

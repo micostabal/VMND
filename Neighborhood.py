@@ -221,6 +221,8 @@ def varClusterFromMPS(
         randomSet = False,
         funNeighborhoods= funNbhs)
 
+
+
+
 if __name__ == '__main__':
-    #nbhs1 = varClusterFromMPS(varFilter = lambda x : int(x.lstrip('C')) <= 2000 and int(x.lstrip('C')) >= 1990 )
-    pass
+    nbhs1 = varClusterFromMPS(varFilter = lambda x : int(x.lstrip('C')) <= 2000 and int(x.lstrip('C')) >= 1990 )
