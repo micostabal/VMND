@@ -48,4 +48,6 @@ if __name__ == '__main__':
     pass
     #runner = unittest.TextTestRunner()
     #runner.run(suite())
+
+    print('ALL TESTS FINISHED')
     
