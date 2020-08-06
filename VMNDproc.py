@@ -6,6 +6,7 @@ from Neighborhood import Neighborhoods, varClusterFromMPS
 from Others import loadMPS
 from Functions import transformKey, genClusterNeighborhoods
 from Cuts import genSubtourLazy, Cut, getCheckSubTour
+import matplotlib.pyplot as plt
 import time
 import os
 
@@ -24,6 +25,18 @@ def checkVariables(modelVars, neighborhoods):
         return False
     else:
         return True
+
+def GapTimePlot(gapsTimes):
+    plt.plot(
+        [elem[1] for elem in gapsTimes],
+        [elem[0] for elem in gapsTimes],
+        scaley=True,
+        scalex = True
+    )
+    plt.title('Gap (%) vs Time (sec)')
+    plt.ylabel('Gap (%)')
+    plt.xlabel('Time (s)')
+    plt.show()
 
 def SubtourElimCallback(model, where):
 
@@ -48,6 +61,16 @@ def VMNDCallback(model, where):
         model._vals = vals
 
 
+        if time.time() - model._LastGapTime >= 5 and model._verbose:
+
+            bnd = model.cbGet(GRB.Callback.MIPSOL_OBJBND)
+            bst = model.cbGet(GRB.Callback.MIPSOL_OBJBST)
+            gap = abs(bst - bnd)/ bst
+
+            model._gapsTimes.append( ( round(gap, 8) , round( model.cbGet(GRB.Callback.RUNTIME), 3)) )
+            model._LastGapTime = time.time()
+
+
         bestObj = model.cbGet(GRB.Callback.MIPSOL_OBJBST)
         thisObj = model.cbGet(GRB.Callback.MIPSOL_OBJ)
         
@@ -69,6 +92,7 @@ def VMNDCallback(model, where):
         else:
             if bestObj >= thisObj:
                 model._newBest = True
+                
                 if model._verbose:
                     print('-- NEW B&C INCUMBENT FOUND -- INC :{} --'.format(thisObj))
         
@@ -329,7 +353,8 @@ def solver(
     callback = 'vmnd',
     alpha = 2,
     minBCTime = 7,
-    timeLimitSeconds = 300
+    timeLimitSeconds = 300,
+    plotGapsTime = True
     ):
 
     model = Model()
@@ -421,17 +446,21 @@ def solver(
                 model._line += 'SUBTOUR : CORRECT'
             else:
                 model._line += 'SUBTOUR : ERROR'
+
+        if verbose and plotGapsTime:
+            GapTimePlot(model._gapsTimes)
         
     return model
 
 def creator(path):
     return loadMPS(path)
 
-if __name__ == '__main__':
-    path = os.path.join('MIPLIB', 'neos-4338804-snowy.mps')
 
-    nbhs = varClusterFromMPS(path, numClu = 10, varFilter = None)
-    solver(
+if __name__ == '__main__':
+    path = os.path.join('MIPLIB', 'binkar10_1.mps')
+
+    nbhs = varClusterFromMPS(path, numClu = 5, varFilter = None)
+    mout = solver(
         path,
         verbose = True,
         addlazy= False,
@@ -441,7 +470,8 @@ if __name__ == '__main__':
         funTest= None,
         callback = 'vmnd',
         alpha = 1,
-        minBCTime= 10,
-        timeLimitSeconds= 600
+        minBCTime= 7,
+        timeLimitSeconds= None
     )
+    
     
