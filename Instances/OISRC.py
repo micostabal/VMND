@@ -2,11 +2,32 @@ import os
 import sys
 sys.path.append(os.path.pardir)
 import numpy as np
+from random import randint, random
+from math import floor
 from Instance import Instance
 from gurobipy import Model, GRB, quicksum
 from Neighborhood import genIRPneighborhoods, Neighborhoods
 from Functions import genClusterNeighborhoods
 from VMNDproc import solver
+
+
+def generateInstanceFile(n, R, m):
+    
+    fileOut = open( os.path.join('OISRCInstances', 'instance_{}_{}_{}_3.oisrc'.format(m, R, n) ), 'w+')
+    fileOut.write('{}\n'.format(m))
+    fileOut.write('{}\n'.format(R))
+    fileOut.write('{}\n'.format(n))
+
+    for j in range(n):
+        sj = randint(0, 10 * n - 1)
+        dj = randint(1, 5 * n)
+        rj = randint(1, R)
+        uj = random()
+        vj = floor( rj * dj * (0.5 + uj) )
+
+        fileOut.write('{} {} {} {} {}\n'.format(j, sj, sj + dj, rj, vj))
+
+    fileOut.close()
 
 
 class Event:
@@ -183,7 +204,7 @@ class OISRC(Instance):
         if outImportedNeighborhoods is 'cluster':
             modelOut = solver(
                 self.pathMPS,
-                verbose = False,
+                verbose = outVerbose,
                 addlazy= False, 
                 funlazy= None,
                 importNeighborhoods= outImportNeighborhoods, 
@@ -245,4 +266,13 @@ def runSeveralOISRC(instNames = [os.path.join('OISRCInstances', 'instance_15_2_1
         )
 
 if __name__ == '__main__':
-    runSeveralOISRC()
+    inst1 = OISRC(os.path.join('OISRCInstances', 'instance_45_6_400_3.oisrc'))
+    inst1.run(
+            outImportNeighborhoods=True,
+            outImportedNeighborhoods='cluster',
+            outVerbose=True,
+            outTimeLimitSeconds=500,
+            outCallback='vmnd',
+            writeResult=True
+    )
+    #generateInstanceFile(400, 6, 45)

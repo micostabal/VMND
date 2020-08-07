@@ -61,7 +61,7 @@ def VMNDCallback(model, where):
         model._vals = vals
 
 
-        if time.time() - model._LastGapTime >= 5 and model._verbose:
+        if time.time() - model._LastGapTime >= 5 and model._verbose and model._plotGapsTimes:
 
             bnd = model.cbGet(GRB.Callback.MIPSOL_OBJBND)
             bst = model.cbGet(GRB.Callback.MIPSOL_OBJBST)
@@ -354,7 +354,7 @@ def solver(
     alpha = 2,
     minBCTime = 7,
     timeLimitSeconds = 300,
-    plotGapsTime = True
+    plotGapsTime = False
     ):
 
     model = Model()
@@ -376,6 +376,7 @@ def solver(
     model._initialTime = time.time()
     model._LastGapTime = time.time()
     model._gapsTimes = []
+    model._plotGapsTimes = plotGapsTime
     
 
     # Local Search Attriutes.
@@ -471,7 +472,8 @@ if __name__ == '__main__':
         callback = 'vmnd',
         alpha = 1,
         minBCTime= 7,
-        timeLimitSeconds= None
+        timeLimitSeconds= None,
+        plotGapsTime= False
     )
     
     
