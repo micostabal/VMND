@@ -3,6 +3,7 @@
 *txt
 *dat
 *oisrc
+*testlog
 *plc
 *vrp
 out.lp
@@ -51,3 +52,6 @@ Intstances/__pycache__
 
 # VRP Instances
 !Instances/VRPInstances/A-n34-k5.vrp
+
+# Testlog Files
+!testfile.testlog

@@ -57,6 +57,19 @@ def SubtourElimCallback(model, where):
                     , model._senseDict[cut.sense], cut.rhs)
                     model._BCLazyAdded.append(cut)
 
+    if where == GRB.Callback.MIP:
+        if time.time() - model._LastGapTime >= 5 and model._verbose and model._plotGapsTimes:
+
+            try:
+                bnd = model.cbGet(GRB.Callback.MIP_OBJBND)
+                bst = model.cbGet(GRB.Callback.MIP_OBJBST)
+                gap = abs(bst - bnd)/ bst
+
+                model._gapsTimes.append( ( round(gap, 8) , round( model.cbGet(GRB.Callback.RUNTIME), 3)) )
+                model._LastGapTime = time.time()
+            except:
+                print('Can\'t get this parameters with this comands')
+
 def VMNDCallback(model, where):
 
     if where == GRB.Callback.MIPSOL:
@@ -505,7 +518,8 @@ def solver(
         testFile = open(model._testLogPath, 'a')
         testFile.write('\nGEN END')
         testFile.close()
-        
+    
+    print(model._gapsTimes)
     return model
 
 def creator(path):
@@ -515,7 +529,15 @@ def creator(path):
 if __name__ == '__main__':
     path = os.path.join('MIPLIB', 'binkar10_1.mps')
 
-    nbhs = varClusterFromMPS(path, numClu = 5, varFilter = None)
+    #nbhs = varClusterFromMPS(path, numClu = 5, varFilter = None)
+    nbhs = Neighborhoods(
+        lowest = 1,
+        highest = 5,
+        keysList=[f"C{i}" for i in range(1000, 2250)],
+        randomSet=True,
+        outerNeighborhoods = None,
+        useFunction = False,
+        funNeighborhoods = None)
     mout = solver(
         path,
         verbose = True,
@@ -524,12 +546,12 @@ if __name__ == '__main__':
         importNeighborhoods=True,
         importedNeighborhoods= nbhs,
         funTest= None,
-        callback = 'vmnd',
+        callback = 'pure',
         alpha = 1,
         minBCTime= 15,
         timeLimitSeconds= None,
-        plotGapsTime= False,
-        writeTestLog=True
+        plotGapsTime= True,
+        writeTestLog=False
     )
     
     
