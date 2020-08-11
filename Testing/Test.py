@@ -36,9 +36,9 @@ class Log:
         self,
         nameInstance = 'thisInstance',
         lazy = False,
-        filePath = 'testfile.testlog',
+        filePath = os.path.join('Logs', 'testfile.testlog'),
         nbhdLowest = 1,
-        nbhdHighest = 7
+        nbhdHighest = 1000
         ):
         self.name = nameInstance
         self.executed = False
@@ -54,6 +54,7 @@ class Log:
         self.BCImproved = False
         self.currentNbhd = self.nbhsLowest
         self.events = []
+        self.previousLog = None
         if filePath is not None:
             file = open(filePath)
             lines = list( filter(lambda x : x != '', file.read().split('\n') ) )
@@ -120,6 +121,14 @@ class Log:
     def testEndLS(self):
         self.LogAssertTrue('testEndLS', self.inLS, msg= 'It should be in LS.')
         self.LogAssertFalse('testEndLS', self.inBC, msg= 'It shouldn\'t be in BC.')
+
+        self.LogAssertTrue(
+            'testEndLS',
+            (int(self.currentNbhd) == self.nbhsHighest) or self.LSimproved,
+            msg = 'Local Search shouldn\'t have ended (no improvement and highest hasn\'t been explored).'
+        )
+
+
         self.inLS = False
         self.BCImproved = False
         
@@ -176,7 +185,7 @@ class Log:
             self.LogAssertTrue(
                 'testExploreNbhd',
                 int(self.currentNbhd) + 1 == int(newNbhd),
-                msg = 'Neighborhood Exploration should have increased in 1.'
+                msg = 'Neighborhood Exploration should have increased in 1 (not from {} to {}).'.format(self.currentNbhd, newNbhd)
             )
         else:
             self.LogAssertTrue(
@@ -185,19 +194,24 @@ class Log:
                 msg = 'The current Negihborhood shouln\'t be the highest.'
             )
         self.currentNbhd = newNbhd
-
+        
     def testEnd(self):
         self.LogAssertTrue('testEnd', True, msg= 'The execution of the program should have ended.')
 
     def run(self, printState = True):
 
         while (len(self.events) > 0):
+
             thisEvent = self.events.popleft()
             elements = thisEvent.split(' ')
 
             typeLog = elements[0]
 
-            if typeLog == 'BC':
+            if typeLog == 'LOWEST':
+                self.nbhsLowest = int(elements[1])
+            elif typeLog == 'HIGHEST':
+                self.nbhsHighest = int(elements[1])
+            elif typeLog == 'BC':
                 if elements[1] == 'BEGIN':
                     self.testBeginBC()
                 elif elements[1] == 'NEWINCUMBENT':
@@ -236,9 +250,11 @@ class Log:
                 pp.pprint('current Nbhd: {}'.format(self.currentNbhd))
                 pp.pprint('Improved BC: {}'.format(self.BCImproved))
                 print('-----------------')
+
+            self.previousLog = thisEvent
         
         self.executed =True
-        
+    
     def printResults(self):
         if not self.executed:
             print('The run Method must be executed first!')
@@ -262,7 +278,7 @@ class Log:
 
 
 if __name__ == '__main__':
-    log1 = Log()
+    log1 = Log(filePath=os.path.join('Logs', 'binkar10_1.testlog'), nbhdHighest= 5, nbhdLowest= 1)
     log1.run(printState=False)
     log1.printResults()
     

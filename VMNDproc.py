@@ -5,10 +5,15 @@ from ConComp import getSubsets
 from Neighborhood import Neighborhoods, varClusterFromMPS
 from Others import loadMPS
 from Functions import transformKey, genClusterNeighborhoods
-from Cuts import genSubtourLazy, Cut, getCheckSubTour
+from Cuts import genSubtourLazy, Cut, getCheckSubTour 
 import matplotlib.pyplot as plt
 import time
 import os
+
+def testlogUpdate(path, newLog):
+    testLogFile = open(path, 'a')
+    testLogFile.write('\n' + newLog)
+    testLogFile.close()
 
 def checkVariables(modelVars, neighborhoods):
     totalVarsN = set()
@@ -89,9 +94,16 @@ def VMNDCallback(model, where):
                     model._newBest = True
                     if model._verbose:
                         print('-- NEW B&C INCUMBENT FOUND -- INC :{} --'.format(thisObj))
+
+                    if model._writeTestLog:
+                        testlogUpdate(model._testLogPath, 'BC NEWINCUMBENT {}'.format(round(thisObj, 7)) )
+
         else:
             if bestObj >= thisObj:
                 model._newBest = True
+
+                if model._writeTestLog:
+                        testlogUpdate(model._testLogPath, 'BC NEWINCUMBENT {}'.format(round(thisObj, 7)) )
                 
                 if model._verbose:
                     print('-- NEW B&C INCUMBENT FOUND -- INC :{} --'.format(thisObj))
@@ -108,8 +120,14 @@ def VMNDCallback(model, where):
             model._IncBeforeLS = model.cbGet(GRB.Callback.MIPSOL_OBJBST)
             model._vals = model.cbGetSolution(model._vars)
 
+            if model._writeTestLog:
+                testlogUpdate(model._testLogPath, 'BC END')
+
             #### Local search is performed ####
             localSearch(model)
+
+            if model._writeTestLog:
+                testlogUpdate(model._testLogPath, 'BC BEGIN')
 
             if model._verbose:
                 print('Starting B&C Search')
@@ -173,9 +191,14 @@ def VMNDCallback(model, where):
 
         # Local Search must be performed again.
         if where == GRB.Callback.MIPNODE or where == GRB.Callback.MIPSOL:
+            if model._writeTestLog:
+                testlogUpdate(model._testLogPath, 'BC END' )
 
             #### Local Search is performed. ####
             localSearch(model)
+
+            if model._writeTestLog:
+                testlogUpdate(model._testLogPath, 'BC BEGIN' )
 
             # B&C is started again.
             if model._verbose:
@@ -190,6 +213,9 @@ def localSearch(model):
     if model._verbose:
         print('Starting Local Search Phase')
     starting_local_search = time.time()
+
+    if model._writeTestLog:
+        testlogUpdate(model._testLogPath, 'LS BEGIN' )
 
     # Improved is always set to false.
     model._LSImproved = False
@@ -232,6 +258,9 @@ def localSearch(model):
         locModel.params.BestObjStop = bestLSObjSoFar
 
         act_depth = model._LSNeighborhoods._depth
+
+        if model._writeTestLog:
+            testlogUpdate(model._testLogPath, 'LS EXPLORE {}'.format(act_depth) )
  
         if model._verbose:
             print('Searching in depth : {}'.format(act_depth))
@@ -298,6 +327,9 @@ def localSearch(model):
                         print( 'MIP Incumbent: {} --'.format(model._IncBeforeLS) + 'Local Search Objective: {}'.format(locModel.objVal))
                         print('--------- Changed {} variables from {}, a  {}% ----------'.format(
                          distinct, totalvars, round(100 * distinct/totalvars, 4)))
+
+                    if model._writeTestLog:
+                        testlogUpdate(model._testLogPath, 'LS NEWINCUMBENT {} {}'.format(act_depth, round(locModel.objVal, 6) ) )
             else:
                 pass
                 #print(locModel.status)
@@ -342,6 +374,9 @@ def localSearch(model):
             print('--- Objective was not reduced ---')
         print('Finished Local Search phase')
 
+    if model._writeTestLog:
+        testlogUpdate(model._testLogPath, 'LS END' )
+
 def solver(
     path,
     verbose =True,
@@ -354,7 +389,8 @@ def solver(
     alpha = 2,
     minBCTime = 7,
     timeLimitSeconds = 300,
-    plotGapsTime = False
+    plotGapsTime = False,
+    writeTestLog = False
     ):
 
     model = Model()
@@ -375,8 +411,18 @@ def solver(
     model._verbose = verbose
     model._initialTime = time.time()
     model._LastGapTime = time.time()
-    model._gapsTimes = []
     model._plotGapsTimes = plotGapsTime
+    model._writeTestLog = writeTestLog
+    model._testLogPath = None
+    model._gapsTimes = []
+
+    if writeTestLog:
+        model._testLogPath = os.path.join ( 'Testing', 'Logs', os.path.basename(path).rstrip('.mps') + '.testlog')
+        testFile = open(model._testLogPath, 'w')
+        testFile.write('\nLOWEST {}'.format(importedNeighborhoods.lowest))
+        testFile.write('\nHIGHEST {}'.format(importedNeighborhoods.highest))
+        testFile.write('\nGEN BEGIN')
+        testFile.close()
     
 
     # Local Search Attriutes.
@@ -433,6 +479,10 @@ def solver(
             model.setParam('TimeLimit', timeLimitSeconds)
         if not verbose:
             model.setParam('OutputFlag', 0)
+
+        if model._writeTestLog:
+            testlogUpdate(model._testLogPath, 'BC BEGIN')
+    
         if callback == 'vmnd':
             model.optimize(VMNDCallback)
         else:
@@ -450,6 +500,11 @@ def solver(
 
         if verbose and plotGapsTime:
             GapTimePlot(model._gapsTimes)
+    
+    if writeTestLog:
+        testFile = open(model._testLogPath, 'a')
+        testFile.write('\nGEN END')
+        testFile.close()
         
     return model
 
@@ -471,9 +526,10 @@ if __name__ == '__main__':
         funTest= None,
         callback = 'vmnd',
         alpha = 1,
-        minBCTime= 7,
+        minBCTime= 15,
         timeLimitSeconds= None,
-        plotGapsTime= False
+        plotGapsTime= False,
+        writeTestLog=True
     )
     
     
