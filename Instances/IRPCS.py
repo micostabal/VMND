@@ -479,7 +479,9 @@ class IRPCS:
         outVerbose = False,
         outMinBCTime = 0,
         outTimeLimitSeconds = 7200,
-        writeResult = True):
+        writeResult = True,
+        outPlotGapsTimes = False,
+        outWriteTestLog = False):
         self.exportMPS()
 
         if outImportedNeighborhoods == 'separated':
@@ -496,7 +498,9 @@ class IRPCS:
                 alpha = outAlpha,
                 callback = outCallback,
                 verbose = outVerbose,
-                timeLimitSeconds= outTimeLimitSeconds
+                timeLimitSeconds= outTimeLimitSeconds,
+                plotGapsTime = outPlotGapsTimes,
+                writeTestLog = outWriteTestLog
             )
         elif outImportedNeighborhoods == 'function':
             modelOut = solver(
@@ -509,7 +513,9 @@ class IRPCS:
                 alpha = outAlpha,
                 callback = outCallback,
                 verbose = outVerbose,
-                timeLimitSeconds= outTimeLimitSeconds
+                timeLimitSeconds= outTimeLimitSeconds,
+                plotGapsTime = outPlotGapsTimes,
+                writeTestLog = outWriteTestLog
             )
         elif outImportedNeighborhoods == 'cluster':
             modelOut = solver(
@@ -522,7 +528,9 @@ class IRPCS:
                 alpha = outAlpha,
                 callback = outCallback,
                 verbose = outVerbose,
-                timeLimitSeconds= outTimeLimitSeconds
+                timeLimitSeconds= outTimeLimitSeconds,
+                plotGapsTime = outPlotGapsTimes,
+                writeTestLog = outWriteTestLog
             )
         else:
             modelOut = solver(
@@ -535,7 +543,9 @@ class IRPCS:
                 alpha = outAlpha,
                 callback = outCallback,
                 verbose = outVerbose,
-                timeLimitSeconds= outTimeLimitSeconds
+                timeLimitSeconds= outTimeLimitSeconds,
+                plotGapsTime = outPlotGapsTimes,
+                writeTestLog = outWriteTestLog
             )
 
         if writeResult:
@@ -612,5 +622,6 @@ if __name__ == '__main__':
     inst1.run(
         outImportedNeighborhoods= 'function',
         outVerbose= True,
-        writeResult=False
+        writeResult=False,
+        outWriteTestLog = True
     )

@@ -355,7 +355,9 @@ class IRP(Instance):
         outVerbose = True,
         outMinBCTime = 0,
         outTimeLimitSeconds = 7200,
-        writeResult = True):
+        writeResult = True,
+        outPlotGapsTime = False,
+        outWriteTestLog = False):
         self.exportMPS()
 
         if outImportedNeighborhoods == 'separated':
@@ -371,7 +373,9 @@ class IRP(Instance):
                 alpha = outAlpha,
                 minBCTime = outMinBCTime,
                 callback = outCallback,
-                verbose = outVerbose
+                verbose = outVerbose,
+                plotGapsTime = outPlotGapsTime,
+                writeTestLog = outWriteTestLog
             )
         elif outImportedNeighborhoods == 'cluster':
             modelOut = solver(
@@ -384,7 +388,9 @@ class IRP(Instance):
                 alpha = outAlpha,
                 minBCTime = 0,
                 callback = outCallback,
-                verbose = True
+                verbose = True,
+                plotGapsTime = outPlotGapsTime,
+                writeTestLog = outWriteTestLog
             )
         else:
             modelOut = solver(
@@ -397,7 +403,9 @@ class IRP(Instance):
                 alpha = outAlpha,
                 minBCTime = outMinBCTime,
                 callback = outCallback,
-                verbose = outVerbose
+                verbose = outVerbose,
+                plotGapsTime = outPlotGapsTime,
+                writeTestLog = outWriteTestLog
             )
 
         if writeResult:
@@ -470,11 +478,12 @@ def runSeveralIRP(instNames, nbhs = ('function', 'cluster'), timeLimit = 100, in
 
 if __name__ == '__main__':
 
-    inst1 = IRP(os.path.join('IRPInstances', 'abs2n50_4.dat'))
+    inst1 = IRP(os.path.join('IRPInstances', 'abs1n10_4.dat'))
 
     inst1.run(
         writeResult = False,
         outImportedNeighborhoods = 'function',
-        outCallback='pure')
+        outCallback='vmnd',
+        outWriteTestLog=True)
 
     print('----------------- Program reached End of Execution Succesfully -----------------')

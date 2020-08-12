@@ -431,6 +431,8 @@ def solver(
 
     if writeTestLog:
         model._testLogPath = os.path.join ( 'Testing', 'Logs', os.path.basename(path).rstrip('.mps') + '.testlog')
+        if not os.path.exists(model._testLogPath):
+            model._testLogPath = os.path.join('..', model._testLogPath)
         testFile = open(model._testLogPath, 'w')
         testFile.write('\nLOWEST {}'.format(importedNeighborhoods.lowest))
         testFile.write('\nHIGHEST {}'.format(importedNeighborhoods.highest))

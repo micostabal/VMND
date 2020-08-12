@@ -209,6 +209,7 @@ class Log:
 
             if typeLog == 'LOWEST':
                 self.nbhsLowest = int(elements[1])
+                self.currentNbhd = self.nbhsLowest
             elif typeLog == 'HIGHEST':
                 self.nbhsHighest = int(elements[1])
             elif typeLog == 'BC':
@@ -278,7 +279,7 @@ class Log:
 
 
 if __name__ == '__main__':
-    log1 = Log(filePath=os.path.join('Logs', 'binkar10_1.testlog'), nbhdHighest= 5, nbhdLowest= 1)
+    log1 = Log(filePath=os.path.join('Logs', 'bs1n10_4.testlog'), nbhdHighest= 5, nbhdLowest= 1)
     log1.run(printState=False)
     log1.printResults()
     

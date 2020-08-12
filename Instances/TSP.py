@@ -160,7 +160,9 @@ class TSP(Instance):
                         funTest = self.genTestFunction(),
                         alpha = 1,
                         callback = 'vmnd',
-                        verbose = True
+                        verbose = True,
+                        plotGapsTime = False,
+                        writeTestLog = True
                 )
 
         self.resultVars = {keyOpTSP(var.varName) : var.x for var in mout.getVars() if var.x > 0 }
@@ -188,7 +190,7 @@ class TSP(Instance):
 
 
 if __name__ == '__main__':
-    tspExp = TSP(60)
+    tspExp = TSP(80)
     tspExp.run()
     tspExp.visualizeRes()
 

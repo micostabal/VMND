@@ -197,7 +197,9 @@ class OISRC(Instance):
         outVerbose = True,
         outMinBCTime = 0,
         outTimeLimitSeconds = 7200,
-        writeResult = True):
+        writeResult = True,
+        outPlotGapsTimes = False,
+        outWriteTestLog = False):
         self.exportMPS()
 
 
@@ -213,7 +215,9 @@ class OISRC(Instance):
                 callback = outCallback,
                 alpha = outAlpha,
                 minBCTime= outMinBCTime,
-                timeLimitSeconds= outTimeLimitSeconds
+                timeLimitSeconds= outTimeLimitSeconds,
+                plotGapsTime = outPlotGapsTimes,
+                writeTestLog = outWriteTestLog
             )
         else:
             print('Cluster Neighborhoods are the only available in this model.')

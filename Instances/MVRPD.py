@@ -396,7 +396,9 @@ class MVRPD(Instance):
         outVerbose = True,
         outMinBCTime = 0,
         outTimeLimitSeconds = 7200,
-        writeResult = True
+        writeResult = True,
+        outPlotGapsTimes = False,
+        outWriteTestLog = False
         ):
         self.exportMPS()
 
@@ -412,7 +414,9 @@ class MVRPD(Instance):
                 callback = outCallback,
                 verbose = outVerbose,
                 minBCTime = outMinBCTime,
-                timeLimitSeconds= outTimeLimitSeconds
+                timeLimitSeconds= outTimeLimitSeconds,
+                plotGapsTime = outPlotGapsTimes,
+                writeTestLog = outWriteTestLog
             )
         elif outImportedNeighborhoods == 'separated':
             nbhs = self.genNeighborhoods(funNbhs=True)
@@ -428,7 +432,9 @@ class MVRPD(Instance):
                 callback = outCallback,
                 verbose = outVerbose,
                 minBCTime = outMinBCTime,
-                timeLimitSeconds= outTimeLimitSeconds
+                timeLimitSeconds= outTimeLimitSeconds,
+                plotGapsTime = outPlotGapsTimes,
+                writeTestLog = outWriteTestLog
             )
         elif outImportedNeighborhoods == 'cluster':
             modelOut = solver(
@@ -442,7 +448,9 @@ class MVRPD(Instance):
                 callback = outCallback,
                 verbose = outVerbose,
                 minBCTime = outMinBCTime,
-                timeLimitSeconds= outTimeLimitSeconds
+                timeLimitSeconds= outTimeLimitSeconds,
+                plotGapsTime = outPlotGapsTimes,
+                writeTestLog = outWriteTestLog
             )
         else:
             modelOut = solver(
@@ -456,7 +464,9 @@ class MVRPD(Instance):
                 callback = outCallback,
                 verbose = outVerbose,
                 minBCTime = outMinBCTime,
-                timeLimitSeconds= outTimeLimitSeconds
+                timeLimitSeconds= outTimeLimitSeconds,
+                plotGapsTime = outPlotGapsTimes,
+                writeTestLog = outWriteTestLog
             )
 
         if writeResult:
@@ -474,11 +484,8 @@ class MVRPD(Instance):
             file.close()
 
         self.resultVars = {keyOpMVRPD(var.varName) : var.x for var in modelOut.getVars() if var.x > 0}
-
-
         self.vals ={var : modelOut._vars[var].x for var in modelOut._vars}
 
-    
         return modelOut
 
     def analyzeRes(self):
@@ -560,12 +567,12 @@ def runSeveralMVRPD(instNames, nbhs = ('normal', 'cluster'), timeLimit = 100, in
 if __name__ == '__main__':
 
     inst1 = MVRPD( os.path.join( 'MVRPDInstances' , 'ajs1n25_h_3.dat' ) )
-    inst1.Q = 942
     inst1.run(
         outImportedNeighborhoods='function',
         writeResult=False,
         outVerbose=True,
-        outCallback = 'pure',
-        outTimeLimitSeconds= None
+        outCallback = 'vmnd',
+        outTimeLimitSeconds= None,
+        outWriteTestLog = True
     )
     inst1.analyzeRes()

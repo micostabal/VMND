@@ -278,7 +278,9 @@ class VRP(Instance):
         outVerbose = True,
         outMinBCTime = 0,
         outTimeLimitSeconds = 7200,
-        writeResult = True):
+        writeResult = True,
+        outPlotGapsTimes = False,
+        outWriteTestLog = False):
 
         self.exportMPS()
 
@@ -294,7 +296,9 @@ class VRP(Instance):
                 callback = outCallback,
                 verbose = outVerbose,
                 minBCTime = outMinBCTime,
-                timeLimitSeconds= outTimeLimitSeconds
+                timeLimitSeconds= outTimeLimitSeconds,
+                plotGapsTime = outPlotGapsTimes,
+                writeTestLog = outWriteTestLog
             )
         elif outImportedNeighborhoods is 'separated':
             nbhs = self.genNeighborhoods(funNbhs=True)
@@ -311,7 +315,9 @@ class VRP(Instance):
                 callback = outCallback,
                 verbose = outVerbose,
                 minBCTime = outMinBCTime,
-                timeLimitSeconds= outTimeLimitSeconds
+                timeLimitSeconds= outTimeLimitSeconds,
+                plotGapsTime = outPlotGapsTimes,
+                writeTestLog = outWriteTestLog
             )
         else:
             modelOut = solver(
@@ -325,7 +331,9 @@ class VRP(Instance):
                 callback = outCallback,
                 verbose = outVerbose,
                 minBCTime = outMinBCTime,
-                timeLimitSeconds= outTimeLimitSeconds
+                timeLimitSeconds= outTimeLimitSeconds,
+                plotGapsTime = outPlotGapsTimes,
+                writeTestLog = outWriteTestLog
             )
 
         if writeResult:
@@ -403,7 +411,8 @@ if __name__ == '__main__':
         outVerbose = True,
         outCallback= 'vmnd',
         outMinBCTime= 10,
-        outTimeLimitSeconds= 100
+        outTimeLimitSeconds= 100,
+        outWriteTestLog = True
     )
     #inst1.visualizeRes()
 
