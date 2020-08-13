@@ -108,15 +108,9 @@ def VMNDCallback(model, where):
                     if model._verbose:
                         print('-- NEW B&C INCUMBENT FOUND -- INC :{} --'.format(thisObj))
 
-                    if model._writeTestLog:
-                        testlogUpdate(model._testLogPath, 'BC NEWINCUMBENT {}'.format(round(thisObj, 7)) )
-
         else:
             if bestObj >= thisObj:
                 model._newBest = True
-
-                if model._writeTestLog:
-                        testlogUpdate(model._testLogPath, 'BC NEWINCUMBENT {}'.format(round(thisObj, 7)) )
                 
                 if model._verbose:
                     print('-- NEW B&C INCUMBENT FOUND -- INC :{} --'.format(thisObj))
@@ -134,6 +128,9 @@ def VMNDCallback(model, where):
             model._vals = model.cbGetSolution(model._vars)
 
             if model._writeTestLog:
+                testlogUpdate(model._testLogPath, f"BC NEWINCUMBENT {round(bestObj, 7)}")
+
+            if model._writeTestLog:
                 testlogUpdate(model._testLogPath, 'BC END')
 
             #### Local search is performed ####
@@ -148,6 +145,10 @@ def VMNDCallback(model, where):
             model._BCLastStart = time.time()
         else:
             if model._newBest:
+
+                # The testlog is updated with new incumbent.
+                if model._writeTestLog:
+                        testlogUpdate(model._testLogPath, 'BC NEWINCUMBENT {}'.format(round(thisObj, 7)) )
                 
                 # Time is restricted.
                 if not model._restrTime:
@@ -165,7 +166,7 @@ def VMNDCallback(model, where):
                 if model._LSNeighborhoods._depth > model._LSNeighborhoods.lowest:
                     model._LSNeighborhoods.resetDepth()
 
-                # The varaible newBest si set to False
+                # The variable newBest is set to False
                 model._newBest = False
     
     # Check B&C time.
@@ -527,7 +528,6 @@ def solver(
 def creator(path):
     return loadMPS(path)
 
-
 if __name__ == '__main__':
     path = os.path.join('MIPLIB', 'binkar10_1.mps')
 
@@ -535,7 +535,7 @@ if __name__ == '__main__':
     nbhs = Neighborhoods(
         lowest = 1,
         highest = 5,
-        keysList=[f"C{i}" for i in range(1000, 2250)],
+        keysList=[f"C{i}" for i in range(1000, 2250)] + [f"C0{i}" for i in range(100, 1000)] + [f"C00{i}" for i in range(1, 100)],
         randomSet=True,
         outerNeighborhoods = None,
         useFunction = False,

@@ -29,10 +29,10 @@ X = inst1.positions
 nbrs = NearestNeighbors(n_neighbors=20, algorithm='ball_tree').fit(X)
 indices = nbrs.kneighbors(X)[1]
 
-# The function that decides whether a varaible is fixed in a certain neighborhood/parameterization is set.
+# The function that decides whether a variable is fixed in a certain neighborhood/parameterization is set.
 def fNbhs(varName, depth, param):
 
-    # The different elements of the name of the varaible are separated.
+    # The different elements of the name of the variable are separated.
     elements = varName.split('_')
 
     # If the name has three elements won't be fixed.
@@ -78,7 +78,7 @@ functionNeighborhoods =  Neighborhoods(
 ##### The Heuristic is executed #####
 
 # Alpha is set to 1, no minimum time in B&C and time limit of 300 seconds. 
-modelOutput = solver(
+"""modelOutput = solver(
     path = path,
     addlazy = False,
     funlazy= None,
@@ -86,19 +86,19 @@ modelOutput = solver(
     importedNeighborhoods= functionNeighborhoods,
     funTest= inst1.genTestFunction(),
     alpha = 1,
-    callback = 'vmnd',
+    callback = 'pure',
     verbose = True,
-    minBCTime = 0,
+    minBCTime = 5,
     timeLimitSeconds= 300
 )
-
+"""
 
 ##### Other Features #####
 
 # Of course this functionalities and other neighborhoods can be directly implemented.
 
 # We cun run directly the heuristic with the same function neighborhoods with this command:
-"""inst1.run(
+inst1.run(
     outImportedNeighborhoods='function',
     writeResult=False,
     outVerbose=True,
@@ -106,6 +106,6 @@ modelOutput = solver(
 )
 
 # Results can be visualized for every period.!
-inst1.visualizeRes()"""
+inst1.visualizeRes()
 
 if __name__ == '__main__': pass

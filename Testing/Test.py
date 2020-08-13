@@ -74,7 +74,7 @@ class Log:
         ]
         self.tests = { name : Test(name) for name in testNames}
         self.errors = []
-        self.effectiveness = { i : { 'total': 0, 'improved' : 0 } for i in range(self.nbhsLowest, self.nbhsHighest + 1)}
+        self.effectiveness = None
 
     def LogAssertEqual(self, nameTest, val1, val2, msg = ''): # Assert Equal
         if val1 == val2:
@@ -142,11 +142,14 @@ class Log:
         self.incumbentBC = newInc
     
     def testNewIncLS(self, newInc):
-        self.LogAssertTrue(
-            'testNewIncLS',
-            newInc <= self.incumbentBC,
-            msg= 'The Local Search objective {} should be lower than the current incumbent.'.format(newInc, self.incumbentBC)
-        )
+        if self.incumbentBC is None:
+            self.incumbentBC = float(newInc)
+        else:
+            self.LogAssertTrue(
+                'testNewIncLS',
+                newInc <= self.incumbentBC,
+                msg= 'The Local Search objective {} should be lower than the current incumbent.'.format(newInc, self.incumbentBC)
+            )
         self.LSimproved = True
 
     def testExploreNbhd(self, newNbhd):
@@ -212,6 +215,7 @@ class Log:
                 self.currentNbhd = self.nbhsLowest
             elif typeLog == 'HIGHEST':
                 self.nbhsHighest = int(elements[1])
+                self.effectiveness = { i : { 'total': 0, 'improved' : 0 } for i in range(self.nbhsLowest, self.nbhsHighest + 1)}
             elif typeLog == 'BC':
                 if elements[1] == 'BEGIN':
                     self.testBeginBC()
@@ -279,8 +283,11 @@ class Log:
 
 
 if __name__ == '__main__':
-    log1 = Log(filePath=os.path.join('Logs', 'bs1n10_4.testlog'), nbhdHighest= 5, nbhdLowest= 1)
-    log1.run(printState=False)
-    log1.printResults()
-    
+
+    args = sys.argv
+    if len(args) == 2:
+        testLogFile = str(args[1])
+        log1 = Log( filePath=os.path.join('Logs', testLogFile) )
+        log1.run(printState=False)
+        log1.printResults()
     
