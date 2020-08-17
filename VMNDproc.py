@@ -505,6 +505,8 @@ def solver(
             model.optimize(SubtourElimCallback)
 
         model._line += ' ,RUNTIME : {}, '.format(round(model.RUNTIME, 3))
+
+        model._line += f"OBJBND: {round(model.ObjBound, 6)}, "
         
         if funTest is not None:
             outputVals = { var.VarName : var.X for var in model.getVars() if var.X > 0}
@@ -531,18 +533,18 @@ def creator(path):
 if __name__ == '__main__':
     path = os.path.join('MIPLIB', 'binkar10_1.mps')
 
-    #nbhs = varClusterFromMPS(path, numClu = 5, varFilter = None)
-    nbhs = Neighborhoods(
+    nbhs = varClusterFromMPS(path, numClu = 5, varFilter = None)
+    """nbhs = Neighborhoods(
         lowest = 1,
         highest = 5,
         keysList=[f"C{i}" for i in range(1000, 2250)] + [f"C0{i}" for i in range(100, 1000)] + [f"C00{i}" for i in range(1, 100)],
         randomSet=True,
         outerNeighborhoods = None,
         useFunction = False,
-        funNeighborhoods = None)
+        funNeighborhoods = None)"""
     mout = solver(
         path,
-        verbose = True,
+        verbose = False,
         addlazy= False,
         funlazy = None,
         importNeighborhoods=True,
@@ -552,8 +554,10 @@ if __name__ == '__main__':
         alpha = 1,
         minBCTime= 15,
         timeLimitSeconds= None,
-        plotGapsTime= True,
+        plotGapsTime= False,
         writeTestLog=False
     )
+
+    print(mout._line)
     
     

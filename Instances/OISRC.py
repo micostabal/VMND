@@ -159,29 +159,57 @@ class OISRC(Instance):
         self.pathMPS = os.path.join(writePath, self.name + '.mps' )
         model.write(self.pathMPS)
 
-    def genNeighborhoods(self, verbose = False):
-        
-        numClu = min(int(self.m * self.n / 10), 20)
-        print(numClu)
-
-        labelsDict = genClusterNeighborhoods( self.pathMPS, numClu, fNbhs = True, varFilter=lambda x: x[0] == 'x')
-        def fClusterNbhs(varName, depth, param):
-            return labelsDict[varName] != depth - 1          
-
-        
-        outerNbhs = { i : (0,) for i in range(1, numClu + 1) }
-
+    def genNeighborhoods(self, verbose = False, classic = False):
         klist = ['x_{}_{}'.format(i, j) for i in range(self.m) for j in range(self.n) ]
+        if not classic:
+            numClu = min(int(self.m * self.n / 10), 20)
+            print(numClu)
 
-        return Neighborhoods(
-            lowest = 1,
-            highest = numClu,
-            keysList= klist,
-            randomSet=False,
-            outerNeighborhoods=outerNbhs,
-            useFunction=True,
-            funNeighborhoods=fClusterNbhs
-            )
+            labelsDict = genClusterNeighborhoods( self.pathMPS, numClu, fNbhs = True, varFilter=lambda x: x[0] == 'x')
+            def fClusterNbhs(varName, depth, param):
+                return labelsDict[varName] != depth - 1          
+            
+            outerNbhs = { i : (0,) for i in range(1, numClu + 1) }
+
+            return Neighborhoods(
+                lowest = 1,
+                highest = numClu,
+                keysList= klist,
+                randomSet=False,
+                outerNeighborhoods=outerNbhs,
+                useFunction=True,
+                funNeighborhoods=fClusterNbhs
+                )
+        else:
+
+
+            nSecond = 4
+
+            outerNbhs = {
+                1 : tuple([i for i in range(1, self.m + 1)]),
+                2 : tuple([i for i in range(1, nSecond + 1)])
+            }
+
+            def fClassicNbhs(varName, depth, param):
+                elements = varName.split('_')
+                machine = int(elements[1])
+                job = int(elements[2])
+                if depth == 1:
+                    return machine != param
+                elif depth == 2:
+                    return (param - 1) * int (self.n / nSecond)  > job or job > param * int (self.n / nSecond)
+                else:
+                    return True
+
+            return Neighborhoods(
+                lowest = 1,
+                highest = 2,
+                keysList= klist,
+                randomSet=False,
+                outerNeighborhoods=outerNbhs,
+                useFunction=True,
+                funNeighborhoods=fClassicNbhs
+                )
 
     def genLazy(self): pass
 
@@ -211,6 +239,22 @@ class OISRC(Instance):
                 funlazy= None,
                 importNeighborhoods= outImportNeighborhoods, 
                 importedNeighborhoods= self.genNeighborhoods(),
+                funTest= None, 
+                callback = outCallback,
+                alpha = outAlpha,
+                minBCTime= outMinBCTime,
+                timeLimitSeconds= outTimeLimitSeconds,
+                plotGapsTime = outPlotGapsTimes,
+                writeTestLog = outWriteTestLog
+            )
+        elif outImportedNeighborhoods is 'classic':
+            modelOut = solver(
+                self.pathMPS,
+                verbose = outVerbose,
+                addlazy= False, 
+                funlazy= None,
+                importNeighborhoods= outImportNeighborhoods, 
+                importedNeighborhoods= self.genNeighborhoods(classic=True),
                 funTest= None, 
                 callback = outCallback,
                 alpha = outAlpha,
@@ -270,12 +314,13 @@ def runSeveralOISRC(instNames = [os.path.join('OISRCInstances', 'instance_15_2_1
         )
 
 if __name__ == '__main__':
-    inst1 = OISRC(os.path.join('OISRCInstances', 'instance_45_6_400_3.oisrc'))
+    inst1 = OISRC(os.path.join('OISRCInstances', 'instance_20_4_200_1.oisrc'))
     inst1.run(
             outImportNeighborhoods=True,
-            outImportedNeighborhoods='cluster',
+            outImportedNeighborhoods='classic',
             outVerbose=True,
-            outTimeLimitSeconds=500,
+            outTimeLimitSeconds=None,
+            outMinBCTime= 3,
             outCallback='vmnd',
             writeResult=True
     )

@@ -12,7 +12,7 @@ class Neighborhoods:
         lowest = 1,
         highest = 5,
         keysList= [],
-        randomSet=True,
+        randomSet=False,
         outerNeighborhoods = None,
         useFunction = False,
         funNeighborhoods = None):
