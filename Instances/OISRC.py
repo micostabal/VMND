@@ -8,7 +8,7 @@ from Instance import Instance
 from gurobipy import Model, GRB, quicksum
 from Neighborhood import genIRPneighborhoods, Neighborhoods
 from Functions import genClusterNeighborhoods
-from VMNDproc import solver
+from VMND import solver
 
 
 def generateInstanceFile(n, R, m):
@@ -314,7 +314,7 @@ def runSeveralOISRC(instNames = [os.path.join('OISRCInstances', 'instance_15_2_1
         )
 
 if __name__ == '__main__':
-    inst1 = OISRC(os.path.join('OISRCInstances', 'instance_20_4_200_1.oisrc'))
+    inst1 = OISRC(os.path.join('OISRCInstances', 'instance_4_2_100_1.oisrc'))
     inst1.run(
             outImportNeighborhoods=True,
             outImportedNeighborhoods='classic',

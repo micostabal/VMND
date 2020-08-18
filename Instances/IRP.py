@@ -9,7 +9,7 @@ from ConComp import getSubsets, MFComponents
 from Neighborhood import genIRPneighborhoods, Neighborhoods
 from Functions import transformKey, genClusterNeighborhoods
 from Cuts import Cut
-from VMNDproc import solver
+from VMND import solver
 from Instance import Instance
 import time
 

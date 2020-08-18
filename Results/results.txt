@@ -1,3 +1,4 @@
 
 instance_4_2_100_1 ,RUNTIME : 2.597, -classic---MIPGAP: 0.0--
 instance_20_4_200_1 ,RUNTIME : 500.032, -classic---MIPGAP: 0.018--
+instance_4_2_100_1 ,RUNTIME : 3.695, OBJBND: -11329.000000, INCUMBENT: -11329.000000, -classic---MIPGAP: 0.0--

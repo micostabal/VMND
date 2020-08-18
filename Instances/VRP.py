@@ -8,7 +8,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from Cuts import Cut
 from ConComp import getSubsets
-from VMNDproc import solver
+from VMND import solver
 from Neighborhood import Neighborhoods
 from Functions import keyOpVRP, genClusterNeighborhoods
 from Instance import Instance
@@ -411,7 +411,7 @@ if __name__ == '__main__':
         outVerbose = True,
         outCallback= 'vmnd',
         outMinBCTime= 10,
-        outTimeLimitSeconds= 100,
+        outTimeLimitSeconds= 20,
         outWriteTestLog = True
     )
     #inst1.visualizeRes()

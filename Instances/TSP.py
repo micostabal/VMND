@@ -7,7 +7,7 @@ import numpy as np
 from ConComp import getSubsets
 from Neighborhood import Neighborhoods
 from sklearn.cluster import KMeans
-from VMNDproc import solver
+from VMND import solver
 from Cuts import Cut
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -190,7 +190,7 @@ class TSP(Instance):
 
 
 if __name__ == '__main__':
-    tspExp = TSP(80)
+    tspExp = TSP(76)
     tspExp.run()
     tspExp.visualizeRes()
 

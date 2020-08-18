@@ -11,7 +11,7 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import KMeans
 from Neighborhood import Neighborhoods
 from Functions import keyOpMVRPD, genClusterNeighborhoods
-from VMNDproc import solver
+from VMND import solver
 from ConComp import getSubsets
 
 def loadMVRPD(path):

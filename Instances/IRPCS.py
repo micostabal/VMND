@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from ConComp import MFComponents
 from Cuts import Cut, getSubsets, genSubtourLazy, getCheckSubTour
 from Neighborhood import Neighborhoods, genIRPneigh
-from VMNDproc import solver
+from VMND import solver
 from Functions import IRPCStransformKey, genClusterNeighborhoods
 
 def loadIRPCS(path):
