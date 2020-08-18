@@ -13,8 +13,9 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from Instance import Instance
 from Functions import keyOpTSP, genClusterNeighborhoods
+from math import sqrt
 
-rd.seed(2**10 + 1)
+rd.seed(4)
 
 
 class TSP(Instance):
@@ -27,8 +28,8 @@ class TSP(Instance):
             self.positions[i][0] = rd.random() * 200
             self.positions[i][1] = rd.random() * 200
 
-        self.E = { (i, j) : np.linalg.norm( np.array(self.positions[i][0], self.positions[i][1]) -
-         np.array(self.positions[j][0], self.positions[j][1]) ) for i in range(n) for j in range(n) if i <  j}
+        self.E = { (i, j) : sqrt( (self.positions[i][0] - self.positions[j][0])**2 + (self.positions[i][1] - self.positions[j][1])**2 )
+         for i in range(n) for j in range(n) if i <  j}
         self.name = 'randomTSP{}nodes.mps'.format(self.n)
         self.pathMPS = None
         self.resultVars = None
