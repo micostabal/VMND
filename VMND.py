@@ -504,9 +504,10 @@ def solver(
         else:
             model.optimize(SubtourElimCallback)
 
-        model._line += ' ,RUNTIME : {}, '.format(round(model.RUNTIME, 3))
+        model._line += ' ,RUNTIME : {0:.3f}, '.format(model.RUNTIME)
 
-        model._line += f"OBJBND: {round(model.ObjBound, 6)}, "
+        model._line += "OBJBND: {0:.6f}, ".format(model.ObjBound)
+        model._line += "INCUMBENT: {0:.6f}, ".format(model.objVal)
         
         if funTest is not None:
             outputVals = { var.VarName : var.X for var in model.getVars() if var.X > 0}
