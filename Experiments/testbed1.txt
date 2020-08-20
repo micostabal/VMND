@@ -1,10 +1,2 @@
-IRPCS IRPCSInstances Inst1.txt
-IRPCS IRPCSInstances Inst2.txt
-IRPCS IRPCSInstances Inst3.txt
-MVRPD MVRPDInstances ajs1n100_l_6.dat
-MVRPD MVRPDInstances ajs5n100_h_6.dat
-MVRPD MVRPDInstances ajs4n100_l_6.dat
-OISRC OISRCInstances instance_20_2_200_1.oisrc
-OISRC OISRCInstances instance_20_4_200_1.oisrc
 OISRC OISRCInstances instance_45_6_600_3.oisrc
 OISRC OISRCInstances instance_45_6_400_3.oisrc
