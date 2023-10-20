@@ -1,6 +1,5 @@
 # Directories #
 *mps
-*txt
 *dat
 *oisrc
 *testlog
@@ -62,3 +61,6 @@ Intstances/__pycache__
 !bs1n10_4.testlog
 !IRPCS_20_3_3.testlog
 !randomTSP80node.testlog
+
+.DS_Store
+venv/
